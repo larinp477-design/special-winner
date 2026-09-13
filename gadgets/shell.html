@@ -1,0 +1,630 @@
+<title>Gadget-Koffer</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Azeret+Mono:wght@400;500&family=Rajdhani:wght@500;600;700&display=swap">
+<style>
+  /* Tokens — bare :root is the complete LIGHT palette (Tageslicht-Werkbank) */
+  :root {
+    --ground:#E6E9EA; --panel:#FAFBFB; --panel2:#EFF2F3; --sunk:#DADFE1;
+    --line:#BFC7CA; --line-soft:#D6DCDE;
+    --ink:#13191C; --ink-2:#3C474C; --ink-dim:#6C787E;
+    --accent:#C63018; --cool:#3A6580; --go:#1B7A4D; --warn:#9A5300;
+    --on-accent:#FFF4F1;
+    --shadow:0 1px 2px rgba(19,25,28,.07), 0 10px 26px -14px rgba(19,25,28,.28);
+    --f-disp:"Rajdhani", "Arial Narrow", system-ui, sans-serif;
+    --f-body:"Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --f-data:"Azeret Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:#0F1213; --panel:#171B1D; --panel2:#1F2527; --sunk:#0A0D0E;
+      --line:#2F3739; --line-soft:#222829;
+      --ink:#E9ECED; --ink-2:#B3BCBF; --ink-dim:#7B868B;
+      --accent:#FF5A3C; --cool:#7FB0C9; --go:#4FBE86; --warn:#E5A24A;
+      --on-accent:#180907;
+      --shadow:0 1px 2px rgba(0,0,0,.45), 0 12px 30px -16px rgba(0,0,0,.8);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:#0F1213; --panel:#171B1D; --panel2:#1F2527; --sunk:#0A0D0E;
+    --line:#2F3739; --line-soft:#222829;
+    --ink:#E9ECED; --ink-2:#B3BCBF; --ink-dim:#7B868B;
+    --accent:#FF5A3C; --cool:#7FB0C9; --go:#4FBE86; --warn:#E5A24A;
+    --on-accent:#180907;
+    --shadow:0 1px 2px rgba(0,0,0,.45), 0 12px 30px -16px rgba(0,0,0,.8);
+  }
+
+  body { background:var(--ground); color:var(--ink); font-family:var(--f-body); line-height:1.5; -webkit-text-size-adjust:100%; }
+  * { box-sizing:border-box; }
+  button, input, select, textarea { font:inherit; color:inherit; }
+  :focus-visible { outline:2px solid var(--cool); outline-offset:2px; border-radius:3px; }
+
+  .case { max-width:560px; margin:0 auto; padding-inline:16px; padding-block:18px 40px; }
+
+  /* Kopf */
+  .case-hdr { display:flex; align-items:baseline; justify-content:space-between; gap:12px; padding-bottom:14px; border-bottom:2px solid var(--ink); }
+  .mark { font-family:var(--f-disp); font-weight:700; font-size:22px; letter-spacing:.14em; text-transform:uppercase; }
+  .mark b { color:var(--accent); font-weight:700; }
+  .mark-sub { font-family:var(--f-data); font-size:10.5px; color:var(--ink-dim); letter-spacing:.04em; }
+
+  /* Startseite */
+  .group { padding-top:22px; }
+  .group-hd { display:flex; align-items:center; gap:10px; margin-bottom:11px; }
+  .group-hd h2 { margin:0; font-family:var(--f-disp); font-weight:600; font-size:13px; letter-spacing:.22em; text-transform:uppercase; color:var(--ink-dim); }
+  .group-hd::after { content:""; flex:1; height:1px; background:var(--line-soft); }
+  .tiles { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px; }
+  @media (max-width:359px) { .tiles { grid-template-columns:1fr; } }
+  .tile { display:flex; flex-direction:column; gap:5px; text-align:left; background:var(--panel); border:1px solid var(--line); border-radius:2px; padding:13px 13px 12px; cursor:pointer; min-height:96px; position:relative; transition:border-color .14s, transform .14s; }
+  .tile:hover { border-color:var(--accent); }
+  .tile:active { transform:translateY(1px); }
+  .tile-name { font-family:var(--f-disp); font-weight:600; font-size:19px; line-height:1.14; letter-spacing:.005em; }
+  .tile-blurb { font-size:12.5px; color:var(--ink-dim); line-height:1.4; }
+  .tile-need { position:absolute; top:11px; right:11px; width:6px; height:6px; border-radius:50%; background:var(--cool); }
+
+  /* Instrumentenansicht */
+  .bar { display:flex; align-items:center; gap:11px; padding-block:12px; border-bottom:1px solid var(--line); margin-bottom:16px; }
+  .back { flex:none; width:38px; height:38px; display:grid; place-items:center; background:var(--panel2); border:1px solid var(--line); border-radius:2px; cursor:pointer; padding:0; }
+  .back svg { width:15px; height:15px; }
+  .bar-name { font-family:var(--f-disp); font-weight:600; font-size:23px; line-height:1.1; flex:1; min-width:0; }
+  .bar-group { font-family:var(--f-data); font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-dim); flex:none; }
+
+  .stage { display:flex; flex-direction:column; gap:14px; }
+  .statusline { font-size:13px; line-height:1.45; padding:9px 11px; border-radius:2px; border-left:2px solid var(--line); background:var(--panel2); color:var(--ink-2); }
+  .statusline:empty { display:none; }
+  .statusline.warn { border-left-color:var(--warn); }
+  .statusline.error { border-left-color:var(--accent); }
+  .statusline.ok { border-left-color:var(--go); }
+
+  /* Bausteine für die Module */
+  .g-row { display:flex; flex-wrap:wrap; align-items:center; gap:9px; }
+  .g-col { display:flex; flex-direction:column; gap:9px; }
+  .g-card { background:var(--panel); border:1px solid var(--line); border-radius:2px; padding:13px; display:flex; flex-direction:column; gap:10px; }
+  .g-note { font-size:12px; line-height:1.5; color:var(--ink-dim); }
+  .g-num { font-family:var(--f-data); font-variant-numeric:tabular-nums; }
+  .g-label { font-family:var(--f-disp); font-weight:600; font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--ink-dim); }
+  .g-grid2 { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px; }
+  @media (max-width:400px) { .g-grid2 { grid-template-columns:1fr; } }
+  .g-big { font-family:var(--f-data); font-weight:500; font-size:21px; font-variant-numeric:tabular-nums; letter-spacing:-.01em; }
+
+  .g-readout { display:flex; flex-direction:column; gap:2px; }
+  .g-readout-val { display:flex; align-items:baseline; gap:7px; }
+  .g-readout-num { font-family:var(--f-data); font-weight:500; font-size:clamp(38px,12vw,52px); line-height:1; font-variant-numeric:tabular-nums; letter-spacing:-.03em; }
+  .g-readout-unit { font-family:var(--f-disp); font-weight:600; font-size:17px; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-dim); }
+  .g-readout-sub { font-size:13px; color:var(--ink-dim); min-height:19px; }
+
+  .g-canvas-wrap { width:100%; background:var(--sunk); border:1px solid var(--line-soft); border-radius:2px; overflow:hidden; line-height:0; }
+  .g-canvas { display:block; width:100%; }
+
+  .g-btn { background:var(--panel2); border:1px solid var(--line); color:var(--ink); border-radius:2px; padding:0 15px; min-height:42px; cursor:pointer; font-family:var(--f-disp); font-weight:600; font-size:15px; letter-spacing:.08em; text-transform:uppercase; transition:border-color .14s, color .14s; }
+  .g-btn:hover:not(:disabled) { border-color:var(--accent); color:var(--accent); }
+  .g-btn:disabled { opacity:.45; cursor:default; }
+  .g-btn.go { background:var(--accent); border-color:var(--accent); color:var(--on-accent); }
+  .g-btn.go:hover:not(:disabled) { color:var(--on-accent); filter:brightness(1.08); }
+  .g-btn.quiet { background:transparent; font-size:13px; min-height:36px; padding:0 11px; }
+  .g-btn[aria-pressed="true"] { border-color:var(--accent); color:var(--accent); }
+
+  .g-field { display:flex; flex-direction:column; gap:5px; }
+  .g-field > .g-label { margin:0; }
+  .g-slider { display:flex; align-items:center; gap:10px; }
+  .g-slider input[type=range] { flex:1; min-width:0; accent-color:var(--accent); height:34px; }
+  .g-slider .g-slider-val { flex:none; min-width:70px; text-align:right; font-family:var(--f-data); font-size:13px; font-variant-numeric:tabular-nums; color:var(--ink-2); }
+  .g-input { background:var(--sunk); border:1px solid var(--line-soft); border-radius:2px; padding:9px 10px; font-family:var(--f-data); font-size:15px; min-width:0; }
+  .g-sel { background:var(--sunk); border:1px solid var(--line-soft); border-radius:2px; padding:9px 10px; min-height:42px; }
+
+  .foot { margin-top:30px; padding-top:13px; border-top:1px solid var(--line-soft); font-family:var(--f-data); font-size:10.5px; color:var(--ink-dim); line-height:1.7; }
+  .sr { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
+  @media (prefers-reduced-motion: reduce) { * { transition:none !important; animation:none !important; } }
+</style>
+
+<div class="case">
+  <header class="case-hdr">
+    <span class="mark">Gadget<b>·</b>Koffer</span>
+    <span class="mark-sub" id="markSub"></span>
+  </header>
+  <main id="view"></main>
+  <footer class="foot" id="foot"></footer>
+</div>
+
+<script>
+window.Gadgets = (function () {
+  "use strict";
+
+  var GROUPS = ["Lage", "Ohr", "Ton", "Welt"];
+  var GROUP_BLURB = {
+    Lage: "Wie das Gerät im Raum liegt",
+    Ohr: "Was das Mikrofon hört",
+    Ton: "Was der Lautsprecher macht",
+    Welt: "Standort, Bildschirm, Kamera"
+  };
+  var registry = [];
+  var current = null;
+
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+  function byId(id) { return document.getElementById(id); }
+
+  /* ---------- geteilte Audio-Infrastruktur ---------- */
+  var AC = null;
+  function getAudio() {
+    if (!AC) {
+      var C = window.AudioContext || window.webkitAudioContext;
+      if (!C) return null;
+      AC = new C();
+    }
+    if (AC.state === "suspended" && AC.resume) { try { AC.resume(); } catch (e) {} }
+    return AC;
+  }
+  document.addEventListener("pointerdown", function () { if (AC && AC.state === "suspended") { try { AC.resume(); } catch (e) {} } }, true);
+
+  var mic = null;
+  function acquireMic() {
+    if (mic) { mic.refs++; return Promise.resolve(mic); }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      return Promise.reject(new Error("no-getusermedia"));
+    }
+    return navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+    }).then(function (stream) {
+      var actx = getAudio();
+      if (!actx) { stream.getTracks().forEach(function (t) { t.stop(); }); throw new Error("no-audiocontext"); }
+      var source = actx.createMediaStreamSource(stream);
+      var analyser = actx.createAnalyser();
+      analyser.fftSize = 2048;
+      analyser.smoothingTimeConstant = 0.6;
+      source.connect(analyser);
+      mic = { actx: actx, analyser: analyser, source: source, stream: stream, refs: 1 };
+      return mic;
+    });
+  }
+  function releaseMic() {
+    if (!mic) return;
+    mic.refs--;
+    if (mic.refs > 0) return;
+    try { mic.source.disconnect(); } catch (e) {}
+    try { mic.stream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {}
+    mic = null;
+  }
+
+  function requestMotion() {
+    var DOE = window.DeviceOrientationEvent, DME = window.DeviceMotionEvent;
+    if (!DOE && !DME) return Promise.resolve(false);
+    if (DOE && typeof DOE.requestPermission === "function") {
+      return DOE.requestPermission().then(function (r) {
+        if (r !== "granted") return false;
+        if (DME && typeof DME.requestPermission === "function") {
+          return DME.requestPermission().then(function () { return true; }, function () { return true; });
+        }
+        return true;
+      }, function () { return false; });
+    }
+    return Promise.resolve(true);
+  }
+
+  function openCamera(opts) {
+    opts = opts || {};
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      return Promise.reject(new Error("no-getusermedia"));
+    }
+    return navigator.mediaDevices.getUserMedia({
+      video: { facingMode: opts.facingMode || "environment", width: { ideal: 320 }, height: { ideal: 240 } }
+    }).then(function (stream) {
+      var track = stream.getVideoTracks()[0];
+      if (opts.torch && track && track.applyConstraints) {
+        var caps = track.getCapabilities ? track.getCapabilities() : {};
+        if (caps && caps.torch) {
+          try { track.applyConstraints({ advanced: [{ torch: true }] })["catch"](function () {}); } catch (e) {}
+        }
+      }
+      var video = document.createElement("video");
+      video.muted = true;
+      video.playsInline = true;
+      video.setAttribute("playsinline", "");
+      video.srcObject = stream;
+      var p = video.play();
+      if (p && p["catch"]) p["catch"](function () {});
+      return { stream: stream, video: video };
+    });
+  }
+
+  /* ---------- Token-Werte für Canvas-Zeichnen ---------- */
+  var TOKEN = {
+    ground: "--ground", panel: "--panel", panel2: "--panel2", sunk: "--sunk",
+    line: "--line", lineSoft: "--line-soft", ink: "--ink", ink2: "--ink-2",
+    inkDim: "--ink-dim", accent: "--accent", cool: "--cool", go: "--go", warn: "--warn",
+    onAccent: "--on-accent"
+  };
+  var colorCache = {};
+  function color(name) {
+    if (colorCache[name]) return colorCache[name];
+    var v = TOKEN[name] || name;
+    var out = getComputedStyle(document.documentElement).getPropertyValue(v).trim() || "#888";
+    colorCache[name] = out;
+    return out;
+  }
+  if (window.matchMedia) {
+    try {
+      window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function () { colorCache = {}; });
+    } catch (e) {}
+  }
+
+  /* ---------- ctx ---------- */
+  function makeCtx(def, root, statusNode) {
+    var disposers = [];
+    var perm = null;
+
+    function own(fn) { disposers.push(fn); return fn; }
+
+    var ctx = {
+      el: el,
+      frag: function () { return document.createDocumentFragment(); },
+
+      row: function () {
+        var r = el("div", "g-row");
+        for (var i = 0; i < arguments.length; i++) if (arguments[i]) r.appendChild(arguments[i]);
+        return r;
+      },
+      col: function () {
+        var c = el("div", "g-col");
+        for (var i = 0; i < arguments.length; i++) if (arguments[i]) c.appendChild(arguments[i]);
+        return c;
+      },
+
+      button: function (label, onClick, variant) {
+        var b = el("button", "g-btn" + (variant ? " " + variant : ""), label);
+        b.type = "button";
+        if (onClick) b.addEventListener("click", onClick);
+        return b;
+      },
+
+      field: function (labelText, controlEl) {
+        var f = el("div", "g-field");
+        f.appendChild(el("div", "g-label", labelText));
+        if (controlEl) f.appendChild(controlEl);
+        return f;
+      },
+
+      slider: function (opts) {
+        opts = opts || {};
+        var wrap = el("div", "g-slider");
+        var input = document.createElement("input");
+        input.type = "range";
+        input.min = opts.min != null ? opts.min : 0;
+        input.max = opts.max != null ? opts.max : 100;
+        input.step = opts.step != null ? opts.step : 1;
+        input.value = opts.value != null ? opts.value : input.min;
+        var out = el("span", "g-slider-val");
+        function paint() {
+          out.textContent = input.value + (opts.unit ? " " + opts.unit : "");
+        }
+        paint();
+        input.addEventListener("input", paint);
+        wrap.appendChild(input);
+        wrap.appendChild(out);
+        return {
+          node: wrap,
+          el: input,
+          value: function () { return parseFloat(input.value); },
+          set: function (v) { input.value = v; paint(); },
+          label: function (text) { out.textContent = text; },
+          onInput: function (fn) { input.addEventListener("input", function () { fn(parseFloat(input.value)); }); }
+        };
+      },
+
+      readout: function (unit) {
+        var node = el("div", "g-readout");
+        var line = el("div", "g-readout-val");
+        var num = el("span", "g-readout-num", "–");
+        line.appendChild(num);
+        if (unit) line.appendChild(el("span", "g-readout-unit", unit));
+        var sub = el("div", "g-readout-sub");
+        node.appendChild(line);
+        node.appendChild(sub);
+        return {
+          node: node,
+          num: num,
+          set: function (v, s) {
+            num.textContent = (v == null ? "–" : String(v));
+            sub.textContent = (s == null ? "" : String(s));
+          }
+        };
+      },
+
+      status: function (text, kind) {
+        statusNode.className = "statusline" + (kind && kind !== "info" ? " " + kind : "");
+        statusNode.textContent = text == null ? "" : String(text);
+      },
+      clearStatus: function () { statusNode.className = "statusline"; statusNode.textContent = ""; },
+
+      canvas: function (aspect) {
+        aspect = aspect || 1.6;
+        var wrap = el("div", "g-canvas-wrap");
+        var cv = document.createElement("canvas");
+        cv.className = "g-canvas";
+        wrap.appendChild(cv);
+        var g = cv.getContext("2d");
+        var api = { node: wrap, el: cv, g: g, w: 300, h: Math.round(300 / aspect) };
+        function resize() {
+          var w = wrap.clientWidth || api.w;
+          var h = Math.max(80, Math.round(w / aspect));
+          var dpr = Math.min(window.devicePixelRatio || 1, 3);
+          cv.width = Math.round(w * dpr);
+          cv.height = Math.round(h * dpr);
+          cv.style.height = h + "px";
+          g.setTransform(dpr, 0, 0, dpr, 0, 0);
+          api.w = w; api.h = h;
+        }
+        api.resize = resize;
+        if (window.ResizeObserver) {
+          var ro = new ResizeObserver(resize);
+          ro.observe(wrap);
+          own(function () { ro.disconnect(); });
+        } else {
+          var onR = function () { resize(); };
+          window.addEventListener("resize", onR);
+          own(function () { window.removeEventListener("resize", onR); });
+        }
+        setTimeout(resize, 0);
+        return api;
+      },
+
+      color: color,
+
+      fmt: function (n, digits) {
+        if (n == null || isNaN(n)) return "–";
+        var s = Number(n).toFixed(digits == null ? 1 : digits);
+        return s.replace(".", ",");
+      },
+
+      raf: function (fn) {
+        var id = 0, last = 0, stopped = false, t0 = (window.performance || Date).now();
+        function step(t) {
+          if (stopped) return;
+          id = requestAnimationFrame(step);
+          var dt = last ? t - last : 16;
+          last = t;
+          try { fn(dt, t - t0); } catch (e) { stopped = true; }
+        }
+        id = requestAnimationFrame(step);
+        var stop = function () { stopped = true; if (id) cancelAnimationFrame(id); };
+        own(stop);
+        return stop;
+      },
+
+      every: function (ms, fn) {
+        var id = setInterval(function () { try { fn(); } catch (e) {} }, ms);
+        var stop = function () { clearInterval(id); };
+        own(stop);
+        return stop;
+      },
+
+      on: function (target, type, fn, opts) {
+        target.addEventListener(type, fn, opts);
+        var off = function () { target.removeEventListener(type, fn, opts); };
+        own(off);
+        return off;
+      },
+
+      store: function (key, fallback) {
+        try {
+          var raw = localStorage.getItem("gk:" + def.id + ":" + key);
+          return raw === null ? fallback : JSON.parse(raw);
+        } catch (e) { return fallback; }
+      },
+      save: function (key, value) {
+        try { localStorage.setItem("gk:" + def.id + ":" + key, JSON.stringify(value)); } catch (e) {}
+      },
+
+      motion: function () {
+        if (perm && perm.motion) return perm.motion;
+        var p = requestMotion();
+        if (perm) perm.motion = p;
+        return p;
+      },
+
+      mic: function () {
+        if (perm && perm.mic) return perm.mic;
+        var p = acquireMic();
+        if (perm) perm.mic = p;
+        p["catch"](function () {});
+        own(function () { p.then(function () { releaseMic(); }, function () {}); });
+        return p;
+      },
+
+      audio: getAudio,
+
+      owned: function (node) {
+        own(function () { try { node.disconnect(); } catch (e) {} });
+        return node;
+      },
+
+      geo: function (fn) {
+        if (!navigator.geolocation) { setTimeout(function () { fn(null, { code: -1, message: "no-geolocation" }); }, 0); return function () {}; }
+        var id = navigator.geolocation.watchPosition(
+          function (pos) { fn(pos, null); },
+          function (err) { fn(null, err); },
+          { enableHighAccuracy: true, maximumAge: 1000, timeout: 20000 }
+        );
+        var stop = function () { try { navigator.geolocation.clearWatch(id); } catch (e) {} };
+        own(stop);
+        return stop;
+      },
+
+      camera: function (opts) {
+        if (perm && perm.camera) return perm.camera;
+        var p = openCamera(opts);
+        if (perm) perm.camera = p;
+        p["catch"](function () {});
+        own(function () {
+          p.then(function (c) {
+            try { c.stream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {}
+            try { c.video.srcObject = null; } catch (e) {}
+          }, function () {});
+        });
+        return p;
+      },
+
+      _setPerm: function (p) { perm = p; },
+      _dispose: function () {
+        for (var i = disposers.length - 1; i >= 0; i--) { try { disposers[i](); } catch (e) {} }
+        disposers.length = 0;
+      }
+    };
+    return ctx;
+  }
+
+  /* ---------- Navigation ---------- */
+  function closeCurrent() {
+    if (!current) return;
+    try { if (current.inst && current.inst.unmount) current.inst.unmount(); } catch (e) {}
+    try { current.ctx._dispose(); } catch (e) {}
+    current = null;
+  }
+
+  function backIcon() {
+    var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", "0 0 16 16");
+    svg.setAttribute("aria-hidden", "true");
+    var p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    p.setAttribute("d", "M10 2 4 8l6 6");
+    p.setAttribute("fill", "none");
+    p.setAttribute("stroke", "currentColor");
+    p.setAttribute("stroke-width", "2");
+    p.setAttribute("stroke-linecap", "round");
+    p.setAttribute("stroke-linejoin", "round");
+    svg.appendChild(p);
+    return svg;
+  }
+
+  function renderHome() {
+    closeCurrent();
+    var view = byId("view");
+    view.textContent = "";
+    byId("markSub").textContent = registry.length + " Geräte";
+
+    if (!registry.length) {
+      var warn = el("div", "statusline error", "Kein Instrument geladen. Die Modul-Dateien fehlen oder haben einen Fehler.");
+      view.appendChild(warn);
+      return;
+    }
+
+    GROUPS.forEach(function (gname) {
+      var items = registry.filter(function (d) { return d.group === gname; });
+      if (!items.length) return;
+      var sec = el("section", "group");
+      var hd = el("div", "group-hd");
+      hd.appendChild(el("h2", null, gname));
+      sec.appendChild(hd);
+      var note = el("div", "g-note", GROUP_BLURB[gname] || "");
+      note.style.marginTop = "-6px";
+      note.style.marginBottom = "11px";
+      sec.appendChild(note);
+
+      var grid = el("div", "tiles");
+      items.forEach(function (d) {
+        var t = el("button", "tile");
+        t.type = "button";
+        t.appendChild(el("span", "tile-name", d.name));
+        t.appendChild(el("span", "tile-blurb", d.blurb || ""));
+        if (d.needs) {
+          var dot = el("span", "tile-need");
+          dot.title = "Braucht eine Freigabe";
+          t.appendChild(dot);
+        }
+        t.addEventListener("click", function () {
+          var p = { };
+          if (d.needs === "motion") p.motion = requestMotion();
+          if (d.needs === "mic") { p.mic = acquireMic(); p.mic["catch"](function () {}); }
+          if (d.needs === "camera") { p.camera = openCamera({ facingMode: "environment", torch: true }); p.camera["catch"](function () {}); }
+          pendingPerm = p;
+          location.hash = "#/" + d.id;
+        });
+        grid.appendChild(t);
+      });
+      sec.appendChild(grid);
+      view.appendChild(sec);
+    });
+  }
+
+  var pendingPerm = null;
+
+  function renderInstrument(def) {
+    closeCurrent();
+    var view = byId("view");
+    view.textContent = "";
+    byId("markSub").textContent = def.group;
+
+    var bar = el("div", "bar");
+    var back = el("button", "back");
+    back.type = "button";
+    back.setAttribute("aria-label", "Zurück zur Übersicht");
+    back.appendChild(backIcon());
+    back.addEventListener("click", function () { location.hash = ""; });
+    bar.appendChild(back);
+    bar.appendChild(el("h1", "bar-name", def.name));
+    bar.appendChild(el("span", "bar-group", def.group));
+    view.appendChild(bar);
+
+    var stage = el("div", "stage");
+    var root = el("div");
+    root.id = "gad-" + def.id;
+    var status = el("div", "statusline");
+    stage.appendChild(root);
+    stage.appendChild(status);
+    view.appendChild(stage);
+
+    var ctx = makeCtx(def, root, status);
+    ctx._setPerm(pendingPerm || {});
+    pendingPerm = null;
+
+    var inst = null;
+    try {
+      inst = def.mount(root, ctx) || null;
+    } catch (e) {
+      status.className = "statusline error";
+      status.textContent = "Dieses Instrument konnte nicht starten: " + (e && e.message ? e.message : "unbekannter Fehler");
+    }
+    current = { def: def, ctx: ctx, inst: inst };
+  }
+
+  function route() {
+    var h = (location.hash || "").replace(/^#\/?/, "");
+    if (!h) { renderHome(); window.scrollTo(0, 0); return; }
+    var def = null;
+    for (var i = 0; i < registry.length; i++) if (registry[i].id === h) { def = registry[i]; break; }
+    if (!def) { location.hash = ""; return; }
+    renderInstrument(def);
+    window.scrollTo(0, 0);
+  }
+
+  function register(def) {
+    if (!def || !def.id || typeof def.mount !== "function") return;
+    for (var i = 0; i < registry.length; i++) if (registry[i].id === def.id) return;
+    if (GROUPS.indexOf(def.group) === -1) def.group = "Welt";
+    registry.push(def);
+  }
+
+  function boot() {
+    registry.sort(function (a, b) {
+      var ga = GROUPS.indexOf(a.group), gb = GROUPS.indexOf(b.group);
+      return ga === gb ? 0 : ga - gb;
+    });
+    var bits = ["Alles rechnet im Handy, nichts wird gesendet."];
+    if (!window.isSecureContext) bits.push("Achtung: unsichere Verbindung — Mikrofon, Kamera und Standort bleiben gesperrt.");
+    byId("foot").textContent = bits.join(" ");
+    window.addEventListener("hashchange", route);
+    window.addEventListener("pagehide", closeCurrent);
+    route();
+  }
+
+  return { register: register, boot: boot, _registry: registry };
+})();
+</script>
+
+<script src="lage.js"></script>
+<script src="ohr.js"></script>
+<script src="ton.js"></script>
+<script src="welt.js"></script>
+<script>Gadgets.boot();</script>
