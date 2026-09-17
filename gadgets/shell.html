@@ -53,6 +53,7 @@
   .group-hd::after { content:""; flex:1; height:1px; background:var(--line-soft); }
   .tiles { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px; }
   @media (max-width:359px) { .tiles { grid-template-columns:1fr; } }
+  .tiles > .tile:last-child:nth-child(odd) { grid-column:1 / -1; }
   .tile { display:flex; flex-direction:column; gap:5px; text-align:left; background:var(--panel); border:1px solid var(--line); border-radius:2px; padding:13px 13px 12px; cursor:pointer; min-height:96px; position:relative; transition:border-color .14s, transform .14s; }
   .tile:hover { border-color:var(--accent); }
   .tile:active { transform:translateY(1px); }
@@ -297,7 +298,8 @@ window.Gadgets = (function () {
         input.value = opts.value != null ? opts.value : input.min;
         var out = el("span", "g-slider-val");
         function paint() {
-          out.textContent = input.value + (opts.unit ? " " + opts.unit : "");
+          var v = String(input.value).replace(".", ",");
+          out.textContent = v + (opts.unit ? " " + opts.unit : "");
         }
         paint();
         input.addEventListener("input", paint);

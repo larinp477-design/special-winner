@@ -63,3 +63,63 @@ Normalfall, in dem der Viewer gar kein `data-theme` setzt.
 
 Das Band unter dem Datum ist eine Zeitachse von 06:00 bis 24:00 mit den Terminen
 des Tages als Balken und einer Nadel, die auf der aktuellen Uhrzeit steht.
+
+---
+
+# Gadget-Koffer
+
+Zwölf Messgeräte auf einer Seite, die die Sensoren des Telefons benutzen —
+Wasserwaage, Kompass, Erschütterungsmesser, Lärm-Messer, Stimmgerät,
+Spektrum-Wasserfall, Tongenerator, Hörtest, Metronom, GPS-Tacho, Lineal und
+Puls-Messer.
+
+Veröffentlicht als Claude Artifact (privat):
+https://claude.ai/artifact/3boNxFyYkaRuPvasx13zMn
+
+## Aufbau
+
+Anders als das Cockpit ist das hier bewusst mehrteilig:
+
+```
+gadgets/
+├── CONTRACT.md        Verbindlicher Vertrag für Instrumentenmodule
+├── shell.html         Design-System, Navigation, Sensor-Infrastruktur
+└── modules/
+    ├── lage.js        Wasserwaage · Kompass · Erschütterung
+    ├── ohr.js         Lärm-Messer · Stimmgerät · Spektrum
+    ├── ton.js         Tongenerator · Hörtest · Metronom
+    └── welt.js        GPS-Tacho · Lineal · Puls-Messer
+```
+
+Die Module sind klassische Skripte ohne Build-Schritt. Sie melden sich beim
+Laden über `Gadgets.register({ id, name, group, blurb, needs, mount })` an;
+die Shell baut daraus die Übersicht. Ein Modul, das fehlt oder einen Fehler
+hat, nimmt die anderen nicht mit — die Übersicht zeigt dann eben weniger
+Geräte.
+
+## Warum die Shell so viel trägt
+
+Jedes Instrument bekommt beim Öffnen ein `ctx`-Objekt. Alles, was darüber
+angelegt wird — Zeichenschleifen, Timer, Listener, AudioNodes, Mikrofon,
+Kamera, Standortverfolgung — meldet die Shell beim Verlassen des Instruments
+wieder ab. Das ist der Grund für den Vertrag: ohne diese eine Regel läuft
+nach zehn Minuten Herumtippen das Mikrofon im Hintergrund weiter und der Akku
+ist leer.
+
+Sensorfreigaben werden schon beim Antippen der Kachel angefordert, also noch
+innerhalb der Nutzergeste. iOS lehnt die Abfrage sonst ab.
+
+## Was am Gerät hängt
+
+Nicht jedes Telefon kann alles, und die Instrumente sagen das selbst, statt
+einen Messwert zu erfinden:
+
+- Die Taschenlampe für den Puls-Messer kann Chrome auf Android, Safari nicht.
+- Ein echter Kompass braucht ein Magnetometer; sonst zeigt die Rose nur die
+  Drehung, nicht Norden — das steht dann auch so da.
+- Der Lärm-Messer misst relativ. Ein Browser-Mikrofon ist nicht kalibriert,
+  echte dB(A) sind damit nicht zu haben; es gibt einen Abgleichregler.
+- Der eingebaute Lautsprecher gibt oberhalb von etwa 15 kHz kaum noch etwas
+  her, der Hörtest braucht also Kopfhörer.
+- Mikrofon, Kamera und Standort bleiben über eine unsichere Verbindung
+  gesperrt.
