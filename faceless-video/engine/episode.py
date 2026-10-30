@@ -108,6 +108,8 @@ class SceneLayer:
         comp = None
         for i, sp in enumerate(specs):
             im = Image.open(sp["png"]).convert("RGBA").resize(self.SRC, Image.LANCZOS)
+            if sp.get("blur"):
+                im = im.filter(ImageFilter.GaussianBlur(sp["blur"]))
             blink = Image.open(sp["blink_png"]).convert("RGBA").resize(self.SRC, Image.LANCZOS) if sp.get("blink_png") else None
             k = self.SRC[0] / 1600
             pivot = tuple(v * k for v in sp.get("pivot", (800, 1200)))

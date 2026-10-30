@@ -9,6 +9,7 @@ from engine import chars as C
 from engine import illus as I
 
 DU = dict(skin="light", hair="#8a6a3e", style="short", clothes="hoodie", shirt="#3f7a4f", pants="#2e3550", iris="#4a6a8a")
+BG_BLUR = 3.0  # depth of field: background slightly soft, characters sharp
 MIA = dict(skin="tan", hair="#2b1d16", style="bob", clothes="jacket", shirt="#e0a93a", pants="#3a3550", iris="#5b3a2a")
 KRUEGER = dict(hair="#6b6458", style="bald", clothes="robe", shirt="#3e5a8c", pants="#3e5a8c", shoes="#5a4a3a")
 
@@ -18,7 +19,7 @@ DAWN = ("#1e1020", "#8a3a34")
 def char(depth=1.12, pivot=(800, 1100), breathe=True, **kw):
     """Character as its own parallax layer, with a blink frame."""
     is_z = kw.pop("zombie", False)
-    fn = C.zombie if is_z else C.person
+    fn = C.zombie3 if is_z else C.person3
     lay = {"svg": I.layer_svg(fn(**kw)), "depth": depth, "pivot": pivot, "breathe": breathe}
     if not is_z:
         lay["blink"] = I.layer_svg(fn(eyes_closed=True, **kw))
@@ -50,8 +51,8 @@ def s_bedroom():
     bg += I.nightstand(720, 920, "--:--")
     bg += I.plant(1450, 900, 230)
     bg += I.vignette(0.7)
-    du = char(pivot=(470, 1100), x=470, yf=1100, h=600, mood="scared", arms="phone", look=(1, 1), rim="#ff8a6a", rim_op=0.35, **DU)
-    return {"layers": [{"svg": I.svg(bg), "depth": 1.0}, du, {"svg": I.layer_svg(I.vignette(0.35)), "depth": 1.0}]}
+    du = char(pivot=(900, 1260), x=900, yf=1260, h=1000, facing=-1, mood="scared", arms="phone", rim="#ff8a6a", rim_op=0.4, **DU)
+    return {"layers": [{"svg": I.svg(bg), "depth": 1.0, "blur": BG_BLUR}, du, {"svg": I.layer_svg(I.vignette(0.35)), "depth": 1.0}]}
 
 
 def s_phone():
@@ -81,7 +82,7 @@ def s_phone():
 def s_window():
     """Looking out: Krueger stands in the middle of the road."""
     bg = dawn_view(4) + I.fog(600, 600, 0.9)
-    kr = char(depth=1.05, pivot=(560, 1000), x=560, yf=1000, h=290, zombie=True, arms="down", **KRUEGER)
+    kr = char(depth=1.05, pivot=(560, 1000), x=560, yf=1000, h=330, zombie=True, facing=1, arms="down", **KRUEGER)
     frame = (I.rect(0, 0, I.W, 80, "#c9ccd6") + I.rect(0, I.H - 110, I.W, 110, "#c9ccd6") + I.rect(0, I.H - 110, I.W, 16, "#a9acb6")
              + I.rect(0, 0, 80, I.H, "#c9ccd6") + I.rect(I.W - 80, 0, 80, I.H, "#c9ccd6") + I.rect(I.W / 2 - 20, 0, 40, I.H, "#c9ccd6")
              + I.path("M80,80 L520,80 L80,520 Z", "#ffffff", 0.05) + I.path("M840,80 L1100,80 L840,340 Z", "#ffffff", 0.05)
@@ -96,8 +97,8 @@ def s_krueger():
     bg += I.skyline(900, "#2a1a24", 7) + I.headframe(260, 900, 420, "#1c1420")
     bg += I.house2(-80, 1100, 460, 560, "#2a2430", "#17121c", seed=6, lit=(1,)) + I.house2(1220, 1100, 460, 560, "#2a2430", "#17121c", seed=7)
     bg += I.fog(800, 400, 0.7)
-    kr = char(depth=1.12, pivot=(800, 2500), x=800, yf=2500, h=2250, zombie=True, arms="down", look=(0, 0), rim="#ff6a5a", rim_op=0.3, **KRUEGER)
-    return {"layers": [{"svg": I.svg(bg), "depth": 1.0}, kr, {"svg": I.layer_svg(I.fog(900, 300, 0.6) + I.vignette(0.8)), "depth": 1.2}]}
+    kr = char(depth=1.12, pivot=(860, 2950), x=860, yf=2950, h=2600, zombie=True, facing=-1, arms="down", rim="#ff6a5a", rim_op=0.35, **KRUEGER)
+    return {"layers": [{"svg": I.svg(bg), "depth": 1.0, "blur": 6}, kr, {"svg": I.layer_svg(I.fog(900, 300, 0.6) + I.vignette(0.8)), "depth": 1.2}]}
 
 
 def hallway_bg(seed=8, door_x=685):
@@ -124,14 +125,14 @@ def s_door():
 def s_du_door():
     """You sneak to the door."""
     bg = hallway_bg(9, door_x=1080)
-    du = char(pivot=(640, 1110), x=640, yf=1110, h=640, mood="scared", arms="fists", look=(2.2, -0.5), rim="#ffd27a", rim_op=0.25, **DU)
-    return {"layers": [{"svg": I.svg(bg), "depth": 1.0}, du, {"svg": I.layer_svg(I.vignette(0.9)), "depth": 1.0}]}
+    du = char(pivot=(700, 1240), x=700, yf=1240, h=920, facing=1, mood="scared", arms="hold", legs="walk", rim="#ffd27a", rim_op=0.3, **DU)
+    return {"layers": [{"svg": I.svg(bg), "depth": 1.0, "blur": BG_BLUR}, du, {"svg": I.layer_svg(I.vignette(0.9)), "depth": 1.0}]}
 
 
 def peephole_inner(closed):
     inner = I.hallway("#4f4a57", "#3c2b2b")
     inner += I.silhouette(905, 690, 150, op=0.9) + I.silhouette(955, 700, 135, op=0.75) + I.silhouette(860, 700, 130, op=0.6)
-    inner += C.person(600, 1560, 1200, mood="crying", arms="hold", look=(1, -1), blood=True, eyes_closed=closed, **MIA)
+    inner += C.person3(660, 2560, 2200, facing=1, mood="crying", arms="hold", blood=True, eyes_closed=closed, **MIA)
     return I.svg(I.peephole(inner))
 
 

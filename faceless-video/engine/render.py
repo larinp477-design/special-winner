@@ -106,10 +106,12 @@ def scaled_layer(layer, scale, center):
 
 # ---------------------------------------------------------------- audio timeline
 
-VOICE_CHAIN = ("highpass=f=75,equalizer=f=250:t=q:w=1.2:g=-2,equalizer=f=3200:t=q:w=1.4:g=3,"
-               "equalizer=f=110:t=q:w=1:g=2,deesser=i=0.4,"
-               "acompressor=threshold=0.08:ratio=3.5:attack=8:release=120:makeup=1.6,"
-               "aecho=0.9:0.85:28|47:0.12|0.07")
+# Tuned against the reference video's spectrum: less boom below 500 Hz, more presence at
+# 1 to 3 kHz, a little air on top, no reverb (reverb made the voice sound foggy).
+VOICE_CHAIN = ("highpass=f=95:poles=2,highpass=f=95:poles=2,lowshelf=f=220:g=-3,equalizer=f=300:t=q:w=1.2:g=-2,"
+               "equalizer=f=1200:t=q:w=1.2:g=2.5,equalizer=f=2800:t=q:w=1.2:g=4,equalizer=f=7000:t=q:w=1.5:g=-2,"
+               "aexciter=amount=0.8:drive=3:freq=9000:blend=0,deesser=i=0.35,"
+               "acompressor=threshold=0.1:ratio=3:attack=5:release=90:makeup=1.5")
 
 
 def ffmpeg_filter(x, chain):
@@ -157,7 +159,7 @@ class Timeline:
             env = np.abs(buses["voice"])
             k = int(0.25 * SR)
             env = np.convolve(env, np.ones(k) / k, mode="same")
-            duck = 1 - 0.55 * np.clip(env / 0.05, 0, 1)
+            duck = 1 - 0.7 * np.clip(env / 0.05, 0, 1)
         else:
             duck = 1.0
         if "sfx" in buses:

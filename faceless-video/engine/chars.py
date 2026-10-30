@@ -264,3 +264,227 @@ def person(x, yf, h=440, skin="light", hair="#5a3a22", style="short", shirt="#7a
 def zombie(x, yf, h=430, shirt="#5d6b78", pants="#3a3530", hair="#3b3a33", style="short", **kw):
     kw.setdefault("arms", "reach")
     return person(x, yf, h, shirt=shirt, pants=pants, hair=hair, style=style, zombie=True, **kw)
+
+
+# ---------------------------------------------------------------- version 3: realistic proportions, 3/4 view
+
+def _grad(gid, col, k_lit=1.12, k_dark=0.78, facing=1):
+    """Horizontal gradient: lit on the facing side, darker on the back side."""
+    a, b = (I.shade(col, k_dark), I.shade(col, k_lit)) if facing >= 0 else (I.shade(col, k_lit), I.shade(col, k_dark))
+    return (f'<linearGradient id="{gid}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="{a}"/>'
+            f'<stop offset="1" stop-color="{b}"/></linearGradient>')
+
+
+def person3(x, yf, h=600, facing=1, skin="light", hair="#5a3a22", style="short", shirt="#3f7a4f", pants="#2e3550",
+            shoes="#1d1d24", clothes="hoodie", mood="neutral", arms="down", legs="stand", zombie=False, blood=False,
+            eyes_closed=False, glasses=False, look=0.0, rim="#ffffff", rim_op=0.0, iris="#3a2a22", extra="", **_):
+    """Standing figure, about 6.3 heads tall, in 3/4 view (facing=1 right, -1 left, 0 front)."""
+    uid = next(_uid)
+    u = h / 100
+    f = facing if facing else 0
+    fs = f if f else 1
+    sk = SKIN["zombie"] if zombie else SKIN.get(skin, skin)
+    defs = [_grad(f"gs{uid}", shirt, facing=fs), _grad(f"gp{uid}", pants, facing=fs), _grad(f"gk{uid}", sk, 1.06, 0.82, fs),
+            _grad(f"gh{uid}", hair, 1.25, 0.8, fs)]
+    S, P, K, HR = f"url(#gs{uid})", f"url(#gp{uid})", f"url(#gk{uid})", f"url(#gh{uid})"
+    o = [f"<defs>{''.join(defs)}</defs>", I.ellipse(x + 2 * u * fs, yf, 14 * u, 2.2 * u, "#000000", 0.35, 'filter="url(#blur8)"')]
+
+    hip_y, sh_y = yf - 47 * u, yf - 79 * u
+    # legs: back leg first, darker
+    spread = {"stand": (2.6, 0), "walk": (5.5, 4), "wide": (5, 0)}[legs]
+    for i, s in enumerate((-1, 1)):
+        back = (s == -fs)
+        lx = x + s * spread[0] * u * (0.7 if f else 1)
+        kx = lx + (spread[1] * u * s * 0.5)
+        col = I.shade(pants, 0.72) if back else P
+        o.append(I.poly([(x + s * 2.6 * u, hip_y + 2 * u), (kx, yf - 24 * u), (lx, yf - 5 * u)], col, 6.4 * u))
+        shoe_col = I.shade(shoes, 0.75) if back else shoes
+        toe = 6.2 * u * (fs if f else 0.25 * s)
+        o.append(I.path(f"M{_c(lx - 3.2 * u)},{_c(yf)} L{_c(lx - 3.2 * u)},{_c(yf - 4 * u)} Q{_c(lx)},{_c(yf - 6 * u)} {_c(lx + 2.5 * u)},{_c(yf - 4.5 * u)} "
+                        f"Q{_c(lx + toe + 2 * u)},{_c(yf - 3 * u)} {_c(lx + toe + 2.6 * u)},{_c(yf)} Z" if fs > 0 or not f else
+                        f"M{_c(lx + 3.2 * u)},{_c(yf)} L{_c(lx + 3.2 * u)},{_c(yf - 4 * u)} Q{_c(lx)},{_c(yf - 6 * u)} {_c(lx - 2.5 * u)},{_c(yf - 4.5 * u)} "
+                        f"Q{_c(lx + toe - 2 * u)},{_c(yf - 3 * u)} {_c(lx + toe - 2.6 * u)},{_c(yf)} Z", shoe_col))
+        o.append(I.rect(min(lx - 3.2 * u, lx + toe - 2.6 * u), yf - 1.2 * u, abs(toe) + 6 * u, 1.2 * u, "#cfcfd4", rx=0.6 * u, op=0.9))
+
+    # arms: hands relative to shoulder joints; first entry is the back arm
+    poses = {
+        "down": [((-1, 12), (-2, 30)), ((1, 13), (2, 31))],
+        "hold": [((2, 13), (3, 19)), ((3, 13), (4, 18))],
+        "phone": [((-1, 12), (-2, 30)), ((5, 12), (10, 2))],
+        "scared": [((4, 10), (6, -4)), ((5, 10), (8, -5))],
+        "reach": [((7, 2), (17, 1)), ((8, 3), (19, 2))],
+        "point": [((-1, 12), (-2, 30)), ((9, 4), (22, 0))],
+        "fists": [((3, 13), (5, 19)), ((4, 13), (7, 18))],
+        "knock": [((-1, 12), (-2, 30)), ((7, 8), (14, 0))],
+    }[arms]
+    sleeve = shirt
+    arm_parts = []
+    for i, ((ex, ey), (hx_, hy_)) in enumerate(poses):
+        back = (i == 0)
+        side = -fs if f else (-1 if back else 1)
+        shx = x + side * 7.2 * u if not f else x + (-5.5 if back else 5.5) * u * fs * (-1 if back else 1) * (-1)
+        if f:
+            shx = x + (5.5 * u if not back else -5.5 * u) * fs
+            jx, jy = shx + ex * u * fs, sh_y + ey * u
+            hx2, hy2 = shx + hx_ * u * fs, sh_y + hy_ * u
+        else:
+            shx = x + (-7.5 if back else 7.5) * u
+            sd = -1 if back else 1
+            jx, jy = shx + abs(ex) * u * sd * 0.6, sh_y + ey * u
+            hx2, hy2 = shx + abs(hx_) * u * sd * 0.5, sh_y + hy_ * u
+        col = I.shade(sleeve, 0.7) if back else S
+        part = I.poly([(shx, sh_y + 2 * u), (jx, jy), (hx2, hy2)], col, 4.8 * u)
+        if clothes in ("hoodie", "jacket", "uniform", "robe"):
+            dx, dy = hx2 - jx, hy2 - jy
+            L = max(1e-6, (dx * dx + dy * dy) ** 0.5)
+            part += I.circle(hx2 - dx / L * 2.2 * u, hy2 - dy / L * 2.2 * u, 2.6 * u, I.shade(sleeve, 0.62 if back else 0.8))
+        part += I.ellipse(hx2, hy2, 2.1 * u, 2.4 * u, I.shade(sk, 0.8) if back else sk)
+        arm_parts.append((back, part, (hx2, hy2)))
+    front_pose = arms in ("hold", "phone", "reach", "point", "fists", "knock", "scared")
+    o += [p for b, p, _ in arm_parts if b]
+
+    # torso
+    w_sh, w_hip = 8.4 * u, 7.0 * u
+    tp = (f"M{_c(x - w_sh)},{_c(sh_y + 2 * u)} Q{_c(x - w_sh)},{_c(sh_y - 1.5 * u)} {_c(x - w_sh + 3 * u)},{_c(sh_y - 1.5 * u)} "
+          f"L{_c(x + w_sh - 3 * u)},{_c(sh_y - 1.5 * u)} Q{_c(x + w_sh)},{_c(sh_y - 1.5 * u)} {_c(x + w_sh)},{_c(sh_y + 2 * u)} "
+          f"L{_c(x + w_hip + 0.6 * u)},{_c(hip_y + 2 * u)} L{_c(x - w_hip - 0.6 * u)},{_c(hip_y + 2 * u)} Z")
+    if zombie:
+        jag = " ".join(f"L{_c(x + w_hip - i * 2 * u)},{_c(hip_y + (3.2 * u if i % 2 else 0.8 * u))}" for i in range(8))
+        tp = (f"M{_c(x - w_sh)},{_c(sh_y + 2 * u)} Q{_c(x - w_sh)},{_c(sh_y - 1.5 * u)} {_c(x - w_sh + 3 * u)},{_c(sh_y - 1.5 * u)} "
+              f"L{_c(x + w_sh - 3 * u)},{_c(sh_y - 1.5 * u)} Q{_c(x + w_sh)},{_c(sh_y - 1.5 * u)} {_c(x + w_sh)},{_c(sh_y + 2 * u)} "
+              f"L{_c(x + w_hip + 0.6 * u)},{_c(hip_y + 2 * u)} {jag} L{_c(x - w_hip - 0.6 * u)},{_c(hip_y + 2 * u)} Z")
+    cid = f"t3{uid}"
+    o.append(f'<clipPath id="{cid}"><path d="{tp}"/></clipPath>')
+    o.append(I.path(tp, S))
+    t = [I.rect(x - w_sh - 2 * u, hip_y - 4 * u, 2 * w_sh + 4 * u, 6 * u, "#000000", op=0.12),
+         I.rect(x - fs * w_sh - (1.2 * u if fs > 0 else 0), sh_y - 2 * u, 1.4 * u, 40 * u, rim, op=rim_op)]
+    if clothes == "hoodie":
+        t.append(I.rect(x - 4.5 * u + fs * 1.5 * u, hip_y - 8 * u, 9 * u, 6.5 * u, I.shade(shirt, 0.82), rx=1.5 * u))
+        for s in (-1, 1):
+            t.append(I.line(x + fs * 1.2 * u + s * 1.4 * u, sh_y - 0.5 * u, x + fs * 1.2 * u + s * 1.6 * u, sh_y + 7 * u, "#e8e4da", 0.55 * u))
+    elif clothes == "jacket":
+        t.append(I.line(x + fs * 1.5 * u, sh_y - 1 * u, x + fs * 1.5 * u, hip_y + 2 * u, I.shade(shirt, 0.55), 0.6 * u))
+        t.append(I.rect(x - w_hip, hip_y - 1 * u, 2 * w_hip, 3 * u, I.shade(shirt, 0.75)))
+    elif clothes == "robe":
+        t.append(I.path(f"M{_c(x - 2.5 * u + fs * u)},{_c(sh_y - 1.5 * u)} L{_c(x + fs * u)},{_c(sh_y + 8 * u)} L{_c(x + 3 * u + fs * u)},{_c(sh_y - 1.5 * u)} Z", "#d9d2c4"))
+        t.append(I.rect(x - w_hip - u, hip_y - 9 * u, 2 * w_hip + 2 * u, 2.4 * u, I.shade(shirt, 0.7)))
+    elif clothes == "uniform":
+        t.append(I.rect(x - w_hip - u, hip_y - 3 * u, 2 * w_hip + 2 * u, 2.4 * u, "#2a2a22"))
+    if zombie:
+        t.append(I.ellipse(x + 2 * u, sh_y + 10 * u, 2.5 * u, 3 * u, "#1a1215", 0.5))
+        t.append(I.ellipse(x - 3 * u, sh_y + 4 * u, 3 * u, 2 * u, "#5a1418", 0.75))
+    if blood:
+        t.append(I.ellipse(x + fs * 5 * u, sh_y + 8 * u, 2.6 * u, 4.5 * u, "#9b1c22", 0.92))
+    o.append(f'<g clip-path="url(#{cid})">{"".join(t)}</g>')
+    if clothes == "hoodie":
+        o.append(I.path(f"M{_c(x - 5 * u)},{_c(sh_y - 1 * u)} Q{_c(x + fs * u)},{_c(sh_y + 3.5 * u)} {_c(x + 5 * u)},{_c(sh_y - 1 * u)} "
+                        f"Q{_c(x)},{_c(sh_y + 0.8 * u)} {_c(x - 5 * u)},{_c(sh_y - 1 * u)} Z", I.shade(shirt, 0.72)))
+    o += [p for b, p, _ in arm_parts if not b]
+    if arms == "phone":
+        px, py = arm_parts[1][2]
+        o.append(I.rect(px - 1.8 * u + fs * u, py - 5.5 * u, 3.6 * u, 6.5 * u, "#121318", rx=0.6 * u))
+        o.append(I.glow(px + fs * 3 * u, py - 3 * u, 9 * u, "Cold", 0.55))
+
+    # neck and head
+    hx, hy = x + fs * (2.0 if zombie else 1.0) * u, yf - (88.5 if zombie else 91) * u
+    rx, ry = 6.6 * u, 7.9 * u
+    o.append(I.rect(hx - 2.2 * u - fs * 0.6 * u, hy + 5 * u, 4.4 * u, 6 * u, I.shade(sk, 0.78)))
+    hd = []
+    hid = f"h3{uid}"
+    jaw = (f"M{_c(hx - rx)},{_c(hy - 1 * u)} Q{_c(hx - rx)},{_c(hy - ry)} {_c(hx)},{_c(hy - ry)} Q{_c(hx + rx)},{_c(hy - ry)} {_c(hx + rx)},{_c(hy - 1 * u)} "
+           f"Q{_c(hx + rx * (0.95 if fs > 0 else 0.85))},{_c(hy + 5.5 * u)} {_c(hx + fs * 2.6 * u)},{_c(hy + ry)} "
+           f"Q{_c(hx - fs * 2 * u)},{_c(hy + ry * 0.95)} {_c(hx - rx * (0.95 if fs < 0 else 0.85))},{_c(hy + 4 * u)} Z")
+    hd.append(f'<clipPath id="{hid}"><path d="{jaw}"/></clipPath>')
+    if style not in ("bald",):
+        hd.append(I.ellipse(hx - fs * 1.2 * u, hy - 1.5 * u, rx + 0.8 * u, ry + 0.4 * u, I.shade(hair, 0.85)))
+    hd.append(I.path(jaw, K))
+    hd.append(f'<g clip-path="url(#{hid})">' + I.rect(hx - rx, hy + 2 * u, 2 * rx, ry, "#000000", op=0.08)
+              + I.rect(hx - fs * rx - (1.2 * u if fs > 0 else 0), hy - ry, 1.2 * u, 2 * ry, rim, op=rim_op * 1.3) + "</g>")
+    # ear on the back side
+    if f:
+        hd.append(I.ellipse(hx - fs * 4.6 * u, hy + 0.8 * u, 1.3 * u, 2 * u, I.shade(sk, 0.82)))
+    else:
+        for s in (-1, 1):
+            hd.append(I.ellipse(hx + s * rx, hy + 0.8 * u, 1.2 * u, 1.9 * u, I.shade(sk, 0.85)))
+    # hair
+    if style == "short":
+        hd.append(I.path(f"M{_c(hx - rx - 0.6 * u)},{_c(hy + 0.5 * u)} Q{_c(hx - rx - 0.8 * u)},{_c(hy - ry - 2 * u)} {_c(hx + fs * 1 * u)},{_c(hy - ry - 1.6 * u)} "
+                         f"Q{_c(hx + rx + 1 * u)},{_c(hy - ry - 1 * u)} {_c(hx + rx + 0.4 * u)},{_c(hy - 3 * u)} "
+                         f"Q{_c(hx + fs * 3 * u)},{_c(hy - 5.8 * u)} {_c(hx - fs * 1 * u)},{_c(hy - 4.4 * u)} "
+                         f"Q{_c(hx - fs * 4 * u)},{_c(hy - 3.5 * u)} {_c(hx - fs * 4.2 * u)},{_c(hy + 0.5 * u)} Z", HR))
+    elif style == "bob":
+        hd.append(I.path(f"M{_c(hx - rx - 1.2 * u)},{_c(hy + 6 * u)} Q{_c(hx - rx - 1.6 * u)},{_c(hy - ry - 2 * u)} {_c(hx)},{_c(hy - ry - 1.6 * u)} "
+                         f"Q{_c(hx + rx + 1.6 * u)},{_c(hy - ry - 2 * u)} {_c(hx + rx + 1.2 * u)},{_c(hy + 6 * u)} L{_c(hx + rx - 1 * u)},{_c(hy + 5 * u)} "
+                         f"Q{_c(hx + rx - 0.5 * u)},{_c(hy - 3 * u)} {_c(hx + fs * 1 * u)},{_c(hy - 5 * u)} Q{_c(hx - rx + 0.5 * u)},{_c(hy - 3 * u)} {_c(hx - rx + 1 * u)},{_c(hy + 5 * u)} Z", HR))
+    elif style == "long":
+        hd.append(I.path(f"M{_c(hx - rx - 1.2 * u)},{_c(hy + 12 * u)} Q{_c(hx - rx - 1.8 * u)},{_c(hy - ry - 2 * u)} {_c(hx)},{_c(hy - ry - 1.6 * u)} "
+                         f"Q{_c(hx + rx + 1.8 * u)},{_c(hy - ry - 2 * u)} {_c(hx + rx + 1.2 * u)},{_c(hy + 12 * u)} L{_c(hx + rx - 1 * u)},{_c(hy + 8 * u)} "
+                         f"Q{_c(hx + rx - 0.5 * u)},{_c(hy - 3 * u)} {_c(hx + fs * 1 * u)},{_c(hy - 5 * u)} Q{_c(hx - rx + 0.5 * u)},{_c(hy - 3 * u)} {_c(hx - rx + 1 * u)},{_c(hy + 8 * u)} Z", HR))
+    elif style == "bald":
+        hd.append(I.path(f"M{_c(hx - fs * rx - fs * 0.3 * u)},{_c(hy + 2 * u)} Q{_c(hx - fs * (rx + 0.6 * u))},{_c(hy - 3 * u)} {_c(hx - fs * (rx - 2.5 * u))},{_c(hy - 3.6 * u)} Z", hair))
+        hd.append(I.ellipse(hx + fs * 1 * u, hy - ry + 2.2 * u, 3 * u, 1.2 * u, "#ffffff", 0.22))
+    elif style == "helmet":
+        hd.append(I.path(f"M{_c(hx - rx - 1.5 * u)},{_c(hy - 0.5 * u)} Q{_c(hx)},{_c(hy - ry - 4.5 * u)} {_c(hx + rx + 1.5 * u)},{_c(hy - 0.5 * u)} Z", HR))
+    # face
+    if f:
+        eyes = [(hx + fs * 0.6 * u, 0.85), (hx + fs * 4.4 * u, 1.0)]
+    else:
+        eyes = [(hx - 2.7 * u, 1.0), (hx + 2.7 * u, 1.0)]
+    ey = hy + 0.2 * u
+    big = mood in ("scared", "shock")
+    erx, ery = (1.35 * u, 1.75 * u) if big else (1.15 * u, 1.35 * u)
+    for (ex, k) in eyes:
+        if zombie:
+            hd.append(I.ellipse(ex, ey, erx * k * 1.6, ery * 1.4, I.shade(sk, 0.55), 0.6))
+            hd.append(I.ellipse(ex, ey, erx * k, ery * 0.85, "#eeeacb"))
+            hd.append(I.circle(ex + fs * 0.2 * u, ey + 0.2 * u, 0.45 * u, "#7a1c1c"))
+        elif eyes_closed:
+            hd.append(I.line(ex - erx * k, ey + 0.3 * u, ex + erx * k, ey + 0.3 * u, "#2a1a18", 0.45 * u))
+        else:
+            hd.append(I.ellipse(ex, ey, erx * k, ery, "#f6f3ee"))
+            hd.append(I.circle(ex + (fs * 0.35 + look) * u, ey + 0.1 * u, 0.85 * u, iris))
+            hd.append(I.circle(ex + (fs * 0.35 + look) * u, ey + 0.1 * u, 0.45 * u, "#121214"))
+            hd.append(I.circle(ex + (fs * 0.35 + look) * u + 0.3 * u, ey - 0.35 * u, 0.22 * u, "#ffffff"))
+            hd.append(I.path(f"M{_c(ex - erx * k - 0.2 * u)},{_c(ey - 0.3 * u)} Q{_c(ex)},{_c(ey - ery - 0.4 * u)} {_c(ex + erx * k + 0.2 * u)},{_c(ey - 0.3 * u)}",
+                             "none", 1, f'stroke="#2a1a18" stroke-width="{_c(0.42 * u)}" stroke-linecap="round"'))
+        bcol = I.shade(hair, 0.7) if style != "bald" else "#8a8070"
+        by = ey - ery - 1.1 * u
+        tilt_in = {"scared": -0.7, "shock": -0.9, "sad": -0.6, "angry": 0.8}.get(mood, 0)
+        sgn = 1 if ex > hx else -1
+        hd.append(I.line(ex - 1.4 * u * k, by - tilt_in * sgn * 0.5 * u, ex + 1.4 * u * k, by + tilt_in * sgn * 0.5 * u, bcol, 0.5 * u))
+    if glasses and not zombie:
+        for (ex, k) in eyes:
+            hd.append(I.rect(ex - 2 * u * k, ey - 1.7 * u, 4 * u * k, 3.3 * u, "none", rx=0.8 * u,
+                             extra=f'stroke="#1e1e24" stroke-width="{_c(0.45 * u)}"'))
+        hd.append(I.line(eyes[0][0] + 2 * u * eyes[0][1] * (1 if eyes[1][0] > eyes[0][0] else -1), ey - 0.6 * u,
+                         eyes[1][0] - 2 * u * (1 if eyes[1][0] > eyes[0][0] else -1), ey - 0.6 * u, "#1e1e24", 0.45 * u))
+    # nose
+    if f:
+        nx = hx + fs * (rx - 0.2 * u)
+        hd.append(I.path(f"M{_c(nx - fs * 1.2 * u)},{_c(hy - 0.5 * u)} Q{_c(nx + fs * 1.4 * u)},{_c(hy + 3.2 * u)} {_c(nx - fs * 0.6 * u)},{_c(hy + 3.6 * u)} Z", I.shade(sk, 0.92)))
+    else:
+        hd.append(I.path(f"M{_c(hx)},{_c(hy + 0.8 * u)} Q{_c(hx + 1 * u)},{_c(hy + 3.2 * u)} {_c(hx - 0.6 * u)},{_c(hy + 3.4 * u)}", "none", 1,
+                         f'stroke="{I.shade(sk, 0.7)}" stroke-width="{_c(0.45 * u)}" stroke-linecap="round"'))
+    mx, my = hx + fs * 2.6 * u if f else hx, hy + 5.3 * u
+    if zombie:
+        hd.append(I.path(f"M{_c(mx - 2 * u)},{_c(my - 0.3 * u)} L{_c(mx - u)},{_c(my + 0.9 * u)} L{_c(mx)},{_c(my)} L{_c(mx + u)},{_c(my + 1 * u)} L{_c(mx + 2 * u)},{_c(my - 0.3 * u)} "
+                         f"Q{_c(mx)},{_c(my + 2.4 * u)} {_c(mx - 2 * u)},{_c(my - 0.3 * u)} Z", "#3b1416"))
+        hd.append(I.rect(mx + 0.8 * u, my + 0.9 * u, 0.5 * u, 2.2 * u, "#7a1418", op=0.9))
+    elif mood in ("scared", "shock", "shout"):
+        hd.append(I.ellipse(mx, my + 0.3 * u, 1.1 * u, 1.4 * u if mood != "shout" else 1.9 * u, "#3b1416"))
+    elif mood in ("sad", "crying"):
+        hd.append(I.path(f"M{_c(mx - 1.6 * u)},{_c(my + 0.8 * u)} Q{_c(mx)},{_c(my - 0.6 * u)} {_c(mx + 1.6 * u)},{_c(my + 0.8 * u)}", "none", 1,
+                         f'stroke="#3b1416" stroke-width="{_c(0.5 * u)}" stroke-linecap="round"'))
+    else:
+        hd.append(I.line(mx - 1.5 * u, my, mx + 1.4 * u, my - 0.1 * u, "#3b1416", 0.5 * u))
+    if mood == "crying" and not eyes_closed:
+        for (ex, k) in eyes:
+            hd.append(I.line(ex, ey + ery, ex - 0.2 * u, ey + ery + 4.5 * u, "#8fd0ff", 0.45 * u, 0.8))
+    tilt = f'transform="rotate({8 * fs} {_c(hx)} {_c(hy + 8 * u)})"' if zombie else ""
+    o.append(f"<g {tilt}>{''.join(hd)}</g>")
+    return f"<g {extra}>{''.join(o)}</g>"
+
+
+def zombie3(x, yf, h=600, shirt="#5d6b78", pants="#3a3530", hair="#3b3a33", style="short", **kw):
+    kw.setdefault("arms", "reach")
+    return person3(x, yf, h, shirt=shirt, pants=pants, hair=hair, style=style, zombie=True, **kw)
