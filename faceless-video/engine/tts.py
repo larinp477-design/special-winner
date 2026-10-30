@@ -97,7 +97,45 @@ def _gemini_synth(text, voice, speed):
     return _resample(audio, 24000)
 
 
-BACKENDS = {"kokoro": _kokoro_synth, "piper": _piper_synth, "gemini": _gemini_synth}
+def _google_synth(text, voice, speed):
+    """Google Cloud Text-to-Speech, e.g. voice "de-DE-Chirp3-HD-Charon" (studio quality, clear).
+    Needs GOOGLE_TTS_API_KEY (or GEMINI_API_KEY) with Cloud TTS enabled. Not tested yet (no key)."""
+    import base64
+    import json
+    import urllib.request
+    key = os.environ.get("GOOGLE_TTS_API_KEY") or os.environ["GEMINI_API_KEY"]
+    lang = "-".join(voice.split("-")[:2])
+    body = {"input": {"text": text}, "voice": {"languageCode": lang, "name": voice},
+            "audioConfig": {"audioEncoding": "LINEAR16", "sampleRateHertz": 48000, "speakingRate": speed}}
+    req = urllib.request.Request("https://texttospeech.googleapis.com/v1/text:synthesize", data=json.dumps(body).encode(),
+                                 headers={"Content-Type": "application/json", "x-goog-api-key": key})
+    with urllib.request.urlopen(req, timeout=120) as resp:
+        data = json.load(resp)
+    raw = base64.b64decode(data["audioContent"])
+    pcm = np.frombuffer(raw[44:], dtype=np.int16).astype(np.float32) / 32768.0
+    return _resample(pcm, 48000)
+
+
+def _sherpa_vits_synth(text, voice, speed):
+    """Other VITS models from the sherpa-onnx mirror, e.g. vits-coqui-de-css10 (female German)."""
+    global _sherpa
+    import sherpa_onnx
+    try:
+        _sherpa
+    except NameError:
+        _sherpa = {}
+    if voice not in _sherpa:
+        d = os.path.join(MODELS, voice)
+        cfg = sherpa_onnx.OfflineTtsConfig(model=sherpa_onnx.OfflineTtsModelConfig(
+            vits=sherpa_onnx.OfflineTtsVitsModelConfig(model=os.path.join(d, "model.onnx"), tokens=os.path.join(d, "tokens.txt")),
+            num_threads=4))
+        _sherpa[voice] = sherpa_onnx.OfflineTts(cfg)
+    r = _sherpa[voice].generate(text, sid=0, speed=speed)
+    return _resample(np.array(r.samples, dtype=np.float32), r.sample_rate)
+
+
+BACKENDS = {"kokoro": _kokoro_synth, "piper": _piper_synth, "gemini": _gemini_synth, "google": _google_synth,
+            "sherpa": _sherpa_vits_synth}
 
 
 def synth(text, backend="kokoro", voice="am_michael", speed=1.0):
