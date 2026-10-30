@@ -51,13 +51,23 @@ def _kokoro_synth(text, voice, speed):
 
 
 def _piper_synth(text, voice, speed):
+    """voice: model name under models/ (old layout) or "<dir>/<model>" from the sherpa-onnx
+    mirror, optionally ":<speaker>" for multi-speaker models (e.g. thorsten_emotional:whisper)."""
     global _piper
     from piper import PiperVoice, SynthesisConfig
     if _piper is None:
-        _piper = PiperVoice.load(os.path.join(MODELS, f"{voice}.onnx"))
+        _piper = {}
+    name, _, spk = voice.partition(":")
+    if name not in _piper:
+        _piper[name] = PiperVoice.load(os.path.join(MODELS, f"{name}.onnx"))
+    v = _piper[name]
+    sid = None
+    if spk:
+        sid = v.config.speaker_id_map.get(spk, None) if v.config.speaker_id_map else None
+    cfg = SynthesisConfig(length_scale=1.0 / speed, speaker_id=sid, noise_scale=0.6, noise_w_scale=0.75)
     buf = io.BytesIO()
     with wave.open(buf, "wb") as w:
-        _piper.synthesize_wav(text, w, syn_config=SynthesisConfig(length_scale=1.0 / speed))
+        v.synthesize_wav(text, w, syn_config=cfg)
     buf.seek(0)
     with wave.open(buf) as w:
         sr = w.getframerate()

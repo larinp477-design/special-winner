@@ -4,8 +4,8 @@
   "module": "episodes.zombie_e01",
   "voice": {
     "backend": "piper",
-    "voice": "de-thorsten-low",
-    "speed": 0.95
+    "voice": "vits-piper-de_DE-thorsten-high/de_DE-thorsten-high",
+    "speed": 0.93
   },
   "hud": {
     "left": "UHR · WALTROP",
@@ -24,7 +24,8 @@
           "boom",
           0.0
         ]
-      ]
+      ],
+      "music": 0.3
     },
     {
       "svg": "phone",
@@ -33,19 +34,26 @@
       "fx": {
         "redpulse": true
       },
-      "text": "Auf deinem Handy kommt nur noch eine einzige Nachricht durch. Notfallwarnung. Bleiben Sie in Ihren Häusern. Öffnen Sie niemandem die Tür. Niemandem.",
+      "text": "Auf deinem Handy kommt nur noch eine einzige Nachricht durch. Notfallwarnung. Bleiben Sie in Ihren Häusern. Öffnen Sie niemandem die Tür. [whisper] Niemandem.",
       "sfx": [
         [
+          "buzz",
+          0.05
+        ],
+        [
           "alarm",
-          0.1
+          0.9
         ]
-      ]
+      ],
+      "music": 0.45,
+      "hit": true
     },
     {
       "svg": "window",
       "clock": "06:15",
       "motion": "zoom_in",
-      "text": "Du gehst zum Fenster. Mitten auf der Straße steht Herr Krüger von nebenan. Im Bademantel. Barfuß. Er bewegt sich nicht."
+      "text": "Du gehst zum Fenster. Mitten auf der Straße steht Herr Krüger von nebenan. Im Bademantel. Barfuß. Er bewegt sich nicht.",
+      "music": 0.5
     },
     {
       "svg": "krueger",
@@ -71,7 +79,9 @@
           "heartbeat",
           3.2
         ]
-      ]
+      ],
+      "music": 0.75,
+      "hit": true
     },
     {
       "svg": "door",
@@ -91,13 +101,14 @@
           "knock",
           0.15
         ]
-      ]
+      ],
+      "music": 0.6
     },
     {
       "svg": "du_door",
       "clock": "06:21",
       "motion": "zoom_in",
-      "text": "Du hältst die Luft an. Schleichst zur Tür. Und schaust durch den Spion.",
+      "text": "Du hältst die Luft an. Schleichst zur Tür. [whisper] Und schaust durch den Spion.",
       "sfx": [
         [
           "heartbeat",
@@ -107,7 +118,8 @@
           "heartbeat",
           1.3
         ]
-      ]
+      ],
+      "music": 0.7
     },
     {
       "svg": "peephole",
@@ -116,13 +128,15 @@
       "fx": {
         "flash": true
       },
-      "text": "Davor steht Mia aus deiner Klasse. Ihr Arm blutet. Bitte, lass mich rein! Die sind direkt hinter mir!",
+      "text": "Davor steht Mia aus deiner Klasse. Ihr Arm blutet. [surprised] Bitte, lass mich rein! [surprised] Die sind direkt hinter mir!",
       "sfx": [
         [
           "sting",
           0.0
         ]
-      ]
+      ],
+      "music": 0.85,
+      "hit": true
     },
     {
       "svg": "stairs",
@@ -136,8 +150,13 @@
         [
           "boom",
           0.1
+        ],
+        [
+          "steps",
+          0.6
         ]
-      ]
+      ],
+      "music": 0.95
     },
     {
       "svg": "banging",
@@ -162,7 +181,9 @@
           "knock",
           0.6
         ]
-      ]
+      ],
+      "music": 1.0,
+      "hit": true
     }
   ],
   "choice": {
@@ -196,5 +217,21 @@
     "#waltrop",
     "#ruhrpott"
   ],
-  "gap": 0.32
+  "gap": 0.32,
+  "voice_styles": {
+    "whisper": {
+      "voice": "vits-piper-de_DE-thorsten_emotional-medium/de_DE-thorsten_emotional-medium:whisper",
+      "speed": 0.9
+    },
+    "surprised": {
+      "voice": "vits-piper-de_DE-thorsten_emotional-medium/de_DE-thorsten_emotional-medium:surprised",
+      "speed": 1.0
+    },
+    "angry": {
+      "voice": "vits-piper-de_DE-thorsten_emotional-medium/de_DE-thorsten_emotional-medium:angry",
+      "speed": 1.0
+    }
+  },
+  "music_gain": 0.5,
+  "drone_gain": 0.5
 }

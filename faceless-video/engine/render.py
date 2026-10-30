@@ -106,16 +106,32 @@ def scaled_layer(layer, scale, center):
 
 # ---------------------------------------------------------------- audio timeline
 
+VOICE_CHAIN = ("highpass=f=75,equalizer=f=250:t=q:w=1.2:g=-2,equalizer=f=3200:t=q:w=1.4:g=3,"
+               "equalizer=f=110:t=q:w=1:g=2,deesser=i=0.4,"
+               "acompressor=threshold=0.08:ratio=3.5:attack=8:release=120:makeup=1.6,"
+               "aecho=0.9:0.85:28|47:0.12|0.07")
+
+
+def ffmpeg_filter(x, chain):
+    p = subprocess.run(["ffmpeg", "-v", "error", "-f", "f32le", "-ar", str(SR), "-ac", "1", "-i", "-",
+                        "-af", chain, "-f", "f32le", "-ar", str(SR), "-ac", "1", "-"],
+                       input=x.astype(np.float32).tobytes(), capture_output=True, check=True)
+    y = np.frombuffer(p.stdout, dtype=np.float32)
+    out = np.zeros(len(x), np.float32)
+    out[: min(len(x), len(y))] = y[: len(x)]
+    return out
+
+
 class Timeline:
     def __init__(self):
         self.audio = []  # (start, samples)
         self.clips = []  # (start, duration, frame_fn)
 
-    def add_audio(self, start, samples, gain=1.0):
-        self.audio.append((start, samples * gain))
+    def add_audio(self, start, samples, gain=1.0, bus="voice"):
+        self.audio.append((start, samples * gain, bus))
 
     def add_sfx(self, start, name, gain=1.0):
-        self.add_audio(start, sfxlib.SFX[name](), gain)
+        self.add_audio(start, sfxlib.SFX[name](), gain, "sfx")
 
     def add_clip(self, start, duration, fn):
         self.clips.append((start, duration, fn))
@@ -125,16 +141,34 @@ class Timeline:
         return max(s + d for s, d, _ in self.clips)
 
     def mix(self):
+        """Sum per bus. Voice gets EQ, compression and a little room, sfx a little room,
+        music is ducked under the voice. Old single-bus timelines still work."""
         n = int(math.ceil(self.duration * SR)) + SR
-        buf = np.zeros(n, dtype=np.float32)
-        for start, s in self.audio:
+        buses = {}
+        for start, smp, bus in self.audio:
+            buf = buses.setdefault(bus, np.zeros(n, dtype=np.float32))
             a = int(start * SR)
-            b = min(n, a + len(s))
-            buf[a:b] += s[: b - a]
-        peak = np.max(np.abs(buf)) or 1.0
+            b = min(n, a + len(smp))
+            buf[a:b] += smp[: b - a]
+        out = np.zeros(n, dtype=np.float32)
+        if "voice" in buses:
+            v = ffmpeg_filter(buses["voice"], VOICE_CHAIN)
+            out += v
+            env = np.abs(buses["voice"])
+            k = int(0.25 * SR)
+            env = np.convolve(env, np.ones(k) / k, mode="same")
+            duck = 1 - 0.55 * np.clip(env / 0.05, 0, 1)
+        else:
+            duck = 1.0
+        if "sfx" in buses:
+            from .music import reverb
+            out += reverb(buses["sfx"], 1.2, 0.18, seed=9)
+        if "music" in buses:
+            out += buses["music"] * duck
+        peak = np.max(np.abs(out)) or 1.0
         if peak > 0.98:
-            buf *= 0.98 / peak
-        return buf[: int(self.duration * SR)]
+            out *= 0.98 / peak
+        return out[: int(self.duration * SR)]
 
     def frame(self, t):
         """Clips may overlap during transitions; a clip fn gets (t_local) and returns an RGB image or None."""

@@ -44,12 +44,16 @@ enthält schon die Bild-Prompts und das Charakterblatt der Figur.
 
 ## Bausteine
 
-- `engine/tts.py`: Stimmen. `kokoro` (Englisch, lokal, gut), `piper` (Deutsch, lokal,
-  mittelmäßig), `gemini` (Deutsch, gut, braucht `GEMINI_API_KEY`, noch ungetestet)
+- `engine/tts.py`: Stimmen. `kokoro` (Englisch, lokal, gut), `piper` (Deutsch, lokal:
+  Thorsten high als Erzähler, Thorsten emotional für [whisper], [surprised], [angry] am
+  Satzanfang, beide CC0, geladen vom sherpa-onnx-Spiegel auf GitHub), `gemini` (Deutsch, gut, braucht `GEMINI_API_KEY`, noch ungetestet)
 - `engine/images.py`: Bilder über die Gemini API mit Referenzbildern für eine feste
   Figur. Braucht `GEMINI_API_KEY`, noch ungetestet
 - `engine/produce.py`: erzeugt fehlende Bilder (erst Charakterblatt, dann jede Szene mit
   Blatt als Referenz) und rendert danach das Video
+- `engine/music.py`: erzeugter Spannungs-Soundtrack (Flächen, Puls, Zupf-Motiv, Riser,
+  Einschläge, Hall), Intensität pro Szene über `music` und `hit` im Skript
+- `engine/chars.py`: Figuren Version 2 mit Schattierung, Lichtkante, Iris, Kleidungsdetails
 - `engine/sfx.py`: Soundeffekte (Tick, Pop, Whoosh, Boom, Ding) mit numpy erzeugt, also
   lizenzfrei
 - `engine/render.py`: Zeitachse, Layout, Animation, Mischung, ffmpeg-Export

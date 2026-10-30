@@ -432,3 +432,176 @@ def stairs(wall="#4b4752", step="#5e5866"):
     for i in range(8):
         s.append(line(150 + i * 88, H - 120 - i * 88, 150 + i * 88, H - 40 - i * 88, "#2c2a30", 8))
     return "".join(s)
+
+
+# ---------------------------------------------------------------- v2 environments: texture, props, light
+
+def room2(wall="#3d4256", floor="#3a2c2a", floor_y=900, stripes=True, seed=1):
+    """Room with wall gradient, wallpaper stripes, floor planks and contact shadow at the wall."""
+    gid = f"wall{seed}"
+    s = [f'<linearGradient id="{gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{shade(wall, 0.7)}"/>'
+         f'<stop offset="1" stop-color="{wall}"/></linearGradient>',
+         rect(0, 0, W, floor_y, f"url(#{gid})")]
+    if stripes:
+        for i in range(0, W, 46):
+            s.append(rect(i, 0, 18, floor_y, "#ffffff", op=0.025))
+    fid = f"floor{seed}"
+    s.append(f'<linearGradient id="{fid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{shade(floor, 0.75)}"/>'
+             f'<stop offset="1" stop-color="{floor}"/></linearGradient>')
+    s.append(rect(0, floor_y, W, H - floor_y, f"url(#{fid})"))
+    r = random.Random(seed)
+    for k in range(7):
+        y = floor_y + (H - floor_y) * (k + 1) / 8
+        s.append(line(0, y, W, y, shade(floor, 0.7), 2, 0.6))
+        for _ in range(3):
+            x = r.uniform(0, W)
+            s.append(line(x, y - (H - floor_y) / 8, x, y, shade(floor, 0.7), 2, 0.5))
+    s.append(rect(0, floor_y - 22, W, 22, shade(wall, 0.65)))
+    s.append(rect(0, floor_y - 22, W, 4, shade(wall, 1.15), op=0.6))
+    s.append(f'<linearGradient id="ao{seed}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".45"/>'
+             f'<stop offset="1" stop-color="#000" stop-opacity="0"/></linearGradient>')
+    s.append(rect(0, floor_y, W, 70, f"url(#ao{seed})"))
+    return "".join(s)
+
+
+def light_shaft(pts, color="#ffb08a", op=0.18, blur=True):
+    d = "M" + " L".join(f"{x:.0f},{y:.0f}" for x, y in pts) + " Z"
+    return path(d, color, op, 'filter="url(#blur20)"' if blur else "")
+
+
+def shelf(x, y, w=360, seed=2):
+    r = random.Random(seed)
+    s = [rect(x, y, w, 14, "#5a4030"), rect(x, y + 14, w, 6, "#000000", op=0.25)]
+    bx = x + 12
+    cols = ["#a8443c", "#3d6a8a", "#c9a24a", "#4f7a4f", "#7a4f7a", "#d9d2c4", "#2f3a4a"]
+    while bx < x + w - 40:
+        bw, bh = r.uniform(16, 30), r.uniform(70, 110)
+        s.append(rect(bx, y - bh, bw, bh, r.choice(cols), rx=2))
+        s.append(rect(bx + 3, y - bh + 12, bw - 6, 5, "#ffffff", op=0.25))
+        bx += bw + r.uniform(1, 4)
+    s.append(path(f"M{bx + 4},{y} L{bx + 30},{y - 80} L{bx + 46},{y - 76} L{bx + 22},{y} Z", r.choice(cols)))
+    return "".join(s)
+
+
+def desk(x, yb, w=420, lamp_on=False, monitor=True):
+    s = [rect(x, yb - 210, w, 22, "#6b4a36"), rect(x, yb - 188, w, 6, "#000000", op=0.3),
+         rect(x + 14, yb - 188, 18, 188, "#5a3e2c"), rect(x + w - 32, yb - 188, 18, 188, "#5a3e2c"),
+         rect(x + w - 150, yb - 188, 120, 110, "#5f4231")]
+    if monitor:
+        s += [rect(x + 60, yb - 400, 230, 150, "#141519", rx=8), rect(x + 70, yb - 390, 210, 130, "#1f2533", rx=4),
+              rect(x + 160, yb - 250, 30, 40, "#141519"), rect(x + 120, yb - 214, 110, 8, "#141519", rx=3)]
+    s += [line(x + w - 70, yb - 210, x + w - 100, yb - 330, "#2a2a30", 8), line(x + w - 100, yb - 330, x + w - 50, yb - 370, "#2a2a30", 8),
+          path(f"M{x + w - 80},{yb - 380} L{x + w - 20},{yb - 380} L{x + w - 35},{yb - 340} L{x + w - 65},{yb - 340} Z", "#2a2a30")]
+    if lamp_on:
+        s.append(glow(x + w - 50, yb - 340, 160, "Warm", 0.6))
+    s += [rect(x + 300, yb - 245, 34, 36, "#d9d2c4", rx=5), rect(x + 296, yb - 245, 42, 6, "#c4bcae", rx=3)]
+    return "".join(s)
+
+
+def plant(x, yb, h=220):
+    s = [path(f"M{x - 40},{yb - 80} L{x + 40},{yb - 80} L{x + 30},{yb} L{x - 30},{yb} Z", "#9a5a3a")]
+    for a in range(-60, 61, 20):
+        ang = math.radians(a - 90)
+        ex, ey = x + math.cos(ang) * h * 0.55, yb - 80 + math.sin(ang) * h * 0.7
+        s.append(f'<path d="M{x},{yb - 80} Q{(x + ex) / 2 - 20},{(yb - 80 + ey) / 2} {ex:.0f},{ey:.0f}" stroke="#3f6b45" stroke-width="16" fill="none" stroke-linecap="round"/>')
+    return "".join(s)
+
+
+def rug(x, y, w=700, col="#6a3a3a"):
+    return ellipse(x, y, w / 2, w / 9, shade(col, 0.8)) + ellipse(x, y - 4, w / 2 - 20, w / 9 - 10, col) + ellipse(x, y - 4, w / 2 - 60, w / 9 - 26, shade(col, 1.12), 0.5)
+
+
+def poster(x, y, w, h, col, label="", tcol="#ffffff"):
+    return (rect(x + 6, y + 8, w, h, "#000000", op=0.3) + rect(x, y, w, h, col) + rect(x + 14, y + 14, w - 28, h * 0.55, shade(col, 0.8))
+            + (text(x + w / 2, y + h * 0.83, label, int(w * 0.18), tcol, 900) if label else ""))
+
+
+def nightstand(x, yb, clock="--:--"):
+    return (rect(x, yb - 170, 170, 170, "#5a4030", rx=6) + rect(x + 12, yb - 150, 146, 60, "#4b3426", rx=4)
+            + circle(x + 85, yb - 120, 6, "#c9a24a") + rect(x + 30, yb - 225, 110, 55, "#141519", rx=10)
+            + text(x + 85, yb - 185, clock, 30, "#e8443f", 800, family="JetBrains Mono, monospace"))
+
+
+def house2(x, yb, w, h, wall="#3b4256", roof="#262b3a", lit=(), curtains="#7a3a3a", chimney=True, seed=0):
+    """Row house with roof tiles, chimney, sills, gutter and curtains."""
+    s = []
+    if chimney:
+        s.append(rect(x + w * 0.68, yb - h - w * 0.42, w * 0.1, w * 0.3, shade(wall, 0.8)))
+        s.append(rect(x + w * 0.665, yb - h - w * 0.43, w * 0.13, 10, shade(wall, 0.6)))
+    s.append(rect(x, yb - h, w, h, wall))
+    s.append(rect(x, yb - h, w * 0.08, h, "#000000", op=0.12))
+    s.append(path(f"M{x - 14},{yb - h} L{x + w / 2},{yb - h - w * 0.38} L{x + w + 14},{yb - h} Z", roof))
+    for k in range(1, 5):
+        yy = yb - h - w * 0.38 * (1 - k / 5)
+        half = (w / 2 + 14) * k / 5
+        s.append(line(x + w / 2 - half, yy, x + w / 2 + half, yy, shade(roof, 0.75), 3, 0.7))
+    s.append(rect(x - 16, yb - h - 6, w + 32, 10, shade(roof, 0.7)))
+    k = 0
+    for row in range(2):
+        for c in range(2):
+            ww, wh = w * 0.22, h * 0.2
+            wx = x + w * (0.18 + c * 0.42)
+            wy = yb - h + h * (0.14 + row * 0.36)
+            on = k in lit
+            s.append(rect(wx - 6, wy - 6, ww + 12, wh + 12, shade(wall, 0.75)))
+            s.append(rect(wx, wy, ww, wh, "#ffcf7a" if on else "#171b28"))
+            if on:
+                s.append(rect(wx, wy, ww * 0.3, wh, curtains, op=0.9))
+                s.append(glow(wx + ww / 2, wy + wh / 2, ww * 1.6, "Warm", 0.4))
+            else:
+                s.append(line(wx + 4, wy + wh - 6, wx + ww * 0.6, wy + 6, "#ffffff", 3, 0.08))
+            s.append(rect(wx - 8, wy + wh + 2, ww + 16, 8, shade(wall, 1.25)))
+            k += 1
+    s.append(rect(x + w * 0.4, yb - h * 0.32, w * 0.2, h * 0.32, shade(wall, 0.55), rx=3))
+    s.append(circle(x + w * 0.56, yb - h * 0.16, 4, "#c9a24a"))
+    s.append(rect(x + w * 0.37, yb - 10, w * 0.26, 10, shade(wall, 1.2)))
+    return "".join(s)
+
+
+def headframe(x, yb, h=520, col="#141722"):
+    """Ruhrpott mine headframe (Foerderturm) silhouette."""
+    w = h * 0.45
+    s = [path(f"M{x - w / 2},{yb} L{x - w * 0.12},{yb - h} L{x + w * 0.12},{yb - h} L{x + w / 2},{yb} L{x + w * 0.38},{yb} "
+              f"L{x + w * 0.06},{yb - h * 0.9} L{x - w * 0.06},{yb - h * 0.9} L{x - w * 0.38},{yb} Z", col)]
+    for k in range(1, 7):
+        y = yb - h * k / 7
+        half = w / 2 - (w / 2 - w * 0.12) * k / 7
+        s.append(line(x - half, y, x + half, y, col, 6))
+        s.append(line(x - half, y, x + half - w * 0.08, y - h / 7, col, 4))
+    s.append(path(f"M{x - w * 0.5},{yb} L{x + w * 0.9},{yb - h * 0.85} L{x + w * 0.96},{yb - h * 0.8} L{x - w * 0.36},{yb} Z", col))
+    s += [circle(x - w * 0.09, yb - h - 12, 22, col), circle(x + w * 0.09, yb - h - 12, 22, col)]
+    s.append(circle(x, yb - h - 30, 6, "#ff3b3b"))
+    s.append(glow(x, yb - h - 30, 40, "Red", 0.7))
+    return "".join(s)
+
+
+def skyline(yb, col="#1a1d2a", seed=5):
+    r = random.Random(seed)
+    s = []
+    x = -20
+    while x < W:
+        w, h = r.uniform(60, 160), r.uniform(60, 220)
+        s.append(rect(x, yb - h, w, h, col))
+        x += w - 4
+    return "".join(s)
+
+
+def powerline(y=300, col="#0e1018"):
+    return (f'<path d="M-20,{y} Q{W / 2},{y + 90} {W + 20},{y - 10}" stroke="{col}" stroke-width="3" fill="none"/>'
+            f'<path d="M-20,{y + 26} Q{W / 2},{y + 120} {W + 20},{y + 16}" stroke="{col}" stroke-width="3" fill="none"/>')
+
+
+def puddle(x, y, w, refl="#d9673e"):
+    return ellipse(x, y, w / 2, w / 10, "#1b1f2a", 0.9) + ellipse(x - w * 0.1, y - 2, w * 0.25, w / 26, refl, 0.35)
+
+
+def hedge(x, yb, w, h=90, col="#1f3328"):
+    s = [rect(x, yb - h * 0.7, w, h * 0.7, col)]
+    for i in range(int(w / 40) + 1):
+        s.append(circle(x + i * 40, yb - h * 0.7, h * 0.32, shade(col, 1.1 if i % 2 else 0.95)))
+    return "".join(s)
+
+
+def layer_svg(body, defs=""):
+    """Transparent layer (no background) for parallax compositing."""
+    return svg(body, defs)

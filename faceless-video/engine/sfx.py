@@ -117,4 +117,42 @@ def sting():
     return ((low + hi) * 0.6).astype(np.float32)
 
 
-SFX = {"knock": knock, "heartbeat": heartbeat, "alarm": alarm, "sting": sting, "tick": tick, "pop": pop, "whoosh": whoosh, "boom": boom, "ding": ding}
+def steps(n_steps=6, gap=0.55):
+    """Slow shuffling steps: short low-passed noise scuffs."""
+    rng = np.random.default_rng(21)
+    n = int((n_steps * gap + 0.6) * SR)
+    out = np.zeros(n, np.float32)
+    for k in range(n_steps):
+        m = int(0.32 * SR)
+        t = np.arange(m) / SR
+        x = rng.standard_normal(m)
+        y = np.zeros(m)
+        acc = 0.0
+        for i in range(m):
+            acc += 0.08 * (x[i] - acc)
+            y[i] = acc
+        env = np.minimum(1, t / 0.05) * np.exp(-t * 9)
+        a = int((k * gap + rng.uniform(-0.05, 0.05)) * SR)
+        a = max(0, a)
+        out[a:a + m] += (y * env * 2.2 * rng.uniform(0.6, 1.0)).astype(np.float32)[: n - a]
+    return out
+
+
+def buzz():
+    n = int(0.9 * SR)
+    t = np.arange(n) / SR
+    s = np.sin(2 * np.pi * 170 * t) * (np.sin(2 * np.pi * 26 * t) > 0) * ((t % 0.45) < 0.3)
+    return (s * 0.35).astype(np.float32)
+
+
+def rain_amb(dur=10.0):
+    rng = np.random.default_rng(31)
+    n = int(dur * SR)
+    x = rng.standard_normal(n).astype(np.float32)
+    k = int(SR * 0.0006)
+    x = np.convolve(x, np.ones(k) / k, mode="same")
+    fade = np.minimum(1, np.minimum(np.arange(n) / SR / 1.0, (n - np.arange(n)) / SR / 1.0))
+    return (x * fade * 0.18).astype(np.float32)
+
+
+SFX = {"steps": steps, "buzz": buzz, "knock": knock, "heartbeat": heartbeat, "alarm": alarm, "sting": sting, "tick": tick, "pop": pop, "whoosh": whoosh, "boom": boom, "ding": ding}

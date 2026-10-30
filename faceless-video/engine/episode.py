@@ -50,29 +50,71 @@ def spaced(d, xy, s, f, fill, spacing, anchor_right=False):
     return total
 
 
+def _layers_of(result):
+    """A scene function returns an SVG string (one opaque layer) or {"layers": [...]}.
+    Layer keys: svg, depth (parallax, 1 = background), pivot (x, y) in scene coords,
+    breathe (bool), blink (svg of the same layer with closed eyes)."""
+    if isinstance(result, str):
+        return [{"svg": result, "depth": 1.0}]
+    return result["layers"]
+
+
 def render_scenes(module, names, out_dir):
-    """SVG scenes from an episode module to PNG via Chromium. Cached on disk."""
+    """SVG scenes (and their layers) from an episode module to PNG via Chromium. Cached on disk."""
     mod = importlib.import_module(module)
     os.makedirs(out_dir, exist_ok=True)
-    args = []
+    args, out = [], {}
     for n in names:
-        svgp, pngp = os.path.join(out_dir, n + ".svg"), os.path.join(out_dir, n + ".png")
-        svg = mod.SCENES[n]()
-        old = open(svgp).read() if os.path.exists(svgp) else None
-        if old != svg or not os.path.exists(pngp):
-            open(svgp, "w").write(svg)
-            args += [svgp, pngp]
+        specs = []
+        for i, lay in enumerate(_layers_of(mod.SCENES[n]())):
+            spec = dict(lay)
+            for key in ("svg", "blink"):
+                if key not in lay:
+                    continue
+                stem = os.path.join(out_dir, f"{n}_{i}{'_b' if key == 'blink' else ''}")
+                old = open(stem + ".svg").read() if os.path.exists(stem + ".svg") else None
+                if old != lay[key] or not os.path.exists(stem + ".png"):
+                    open(stem + ".svg", "w").write(lay[key])
+                    args += [stem + ".svg", stem + ".png"]
+                spec["png" if key == "svg" else "blink_png"] = stem + ".png"
+            specs.append(spec)
+        out[n] = specs
     if args:
         subprocess.run(["node", os.path.join(os.path.dirname(__file__), "svg2png.js")] + args, check=True)
-    return {n: os.path.join(out_dir, n + ".png") for n in names}
+    return out
+
+
+GRAIN = None
+
+
+def grain_frames():
+    global GRAIN
+    if GRAIN is None:
+        rng = np.random.default_rng(3)
+        GRAIN = [rng.normal(0, 7, (PANEL_H, W, 1)).astype(np.float32) for _ in range(6)]
+    return GRAIN
 
 
 class SceneLayer:
-    """One scene: panel with camera motion, static blurred background."""
+    """One scene: layered panel with parallax camera, breathing and blinking characters,
+    bloom and film grain. Background: the scene blurred, dark, with a red vignette."""
 
-    def __init__(self, png, motion, dur, fx):
-        src = Image.open(png).convert("RGB")
-        self.src = src.resize((1620, 1215), Image.LANCZOS)
+    SRC = (1620, 1215)
+
+    def __init__(self, specs, motion, dur, fx):
+        if isinstance(specs, str):
+            specs = [{"png": specs, "depth": 1.0}]
+        self.layers = []
+        comp = None
+        for i, sp in enumerate(specs):
+            im = Image.open(sp["png"]).convert("RGBA").resize(self.SRC, Image.LANCZOS)
+            blink = Image.open(sp["blink_png"]).convert("RGBA").resize(self.SRC, Image.LANCZOS) if sp.get("blink_png") else None
+            k = self.SRC[0] / 1600
+            pivot = tuple(v * k for v in sp.get("pivot", (800, 1200)))
+            self.layers.append(dict(img=im, blink=blink, depth=sp.get("depth", 1.0), pivot=pivot,
+                                    breathe=sp.get("breathe", False), phase=(i * 1.37) % 3.6))
+            comp = im if comp is None else Image.alpha_composite(comp, im)
+        src = comp.convert("RGB")
         self.motion, self.dur, self.fx = motion, dur, fx
         bg = src.resize((W, int(W * src.height / src.width)), Image.BILINEAR)
         s = H / bg.height
@@ -96,18 +138,18 @@ class SceneLayer:
         m[-f:] *= ramp[::-1][:, None]
         self.mask = Image.fromarray((m * 255).astype(np.uint8))
 
-    def panel(self, t):
+    def camera(self, t):
         p = ease_in_out(t / self.dur)
-        bw, bh = self.src.size
-        z0, z1 = {"zoom_in": (1.0, 1.12), "zoom_out": (1.12, 1.0), "push": (1.0, 1.2),
-                  "pan_left": (1.1, 1.1), "pan_right": (1.1, 1.1), "still": (1.03, 1.05)}.get(self.motion, (1.0, 1.1))
+        bw, bh = self.SRC
+        z0, z1 = {"zoom_in": (1.04, 1.14), "zoom_out": (1.14, 1.04), "push": (1.04, 1.22),
+                  "pan_left": (1.12, 1.12), "pan_right": (1.12, 1.12), "still": (1.05, 1.07)}.get(self.motion, (1.04, 1.12))
         z = z0 + (z1 - z0) * p
-        cw, ch = bw / z, bh / z
         cx, cy = bw / 2, bh / 2
+        span = bw - bw / z
         if self.motion == "pan_left":
-            cx = bw / 2 + (bw - cw) / 2 * (1 - 2 * p)
+            cx = bw / 2 + span / 2 * (1 - 2 * p)
         elif self.motion == "pan_right":
-            cx = bw / 2 - (bw - cw) / 2 * (1 - 2 * p)
+            cx = bw / 2 - span / 2 * (1 - 2 * p)
         for at in self.fx.get("shake_at", []):
             if 0 <= t - at < 0.45:
                 k = 1 - (t - at) / 0.45
@@ -116,19 +158,58 @@ class SceneLayer:
         if self.fx.get("shake"):
             cx += math.sin(t * 31) * 6 + math.sin(t * 17) * 4
             cy += math.cos(t * 23) * 5
-        cw, ch = min(cw, bw / 1.04), min(ch, bh / 1.04)
-        cx = min(max(cx, cw / 2), bw - cw / 2)
-        cy = min(max(cy, ch / 2), bh - ch / 2)
-        box = (cx - cw / 2, cy - ch / 2, cx + cw / 2, cy + ch / 2)
-        img = self.src.resize((W, PANEL_H), Image.BILINEAR, box=box)
+        # slow handheld drift so nothing is ever completely static
+        cx += math.sin(t * 0.7) * 6
+        cy += math.sin(t * 0.53 + 1) * 4
+        return z, cx, cy
+
+    def panel(self, t):
+        z, cx, cy = self.camera(t)
+        bw, bh = self.SRC
+        out = None
+        for L in self.layers:
+            k = L["depth"]
+            zl = 1 + (z - 1) * k
+            cw, ch = bw / zl, bh / zl
+            lx = bw / 2 + (cx - bw / 2) * k
+            ly = bh / 2 + (cy - bh / 2) * k
+            if k == 1.0 and out is None:
+                cw, ch = min(cw, bw / 1.02), min(ch, bh / 1.02)
+                lx = min(max(lx, cw / 2), bw - cw / 2)
+                ly = min(max(ly, ch / 2), bh - ch / 2)
+            x0, y0 = lx - cw / 2, ly - ch / 2
+            sx, sy = cw / W, ch / PANEL_H
+            if L["breathe"]:
+                s = 1 + 0.011 * math.sin(2 * math.pi * (t + L["phase"]) / 3.3)
+                px, py = L["pivot"]
+                # scale content around the pivot: shrink the sampling box around it
+                x0 = px + (x0 - px) / s
+                y0 = py + (y0 - py) / s
+                sx, sy = sx / s, sy / s
+            src = L["img"]
+            if L["blink"] is not None and ((t + L["phase"]) % 3.6) < 0.13:
+                src = L["blink"]
+            im = src.transform((W, PANEL_H), Image.AFFINE, (sx, 0, x0, 0, sy, y0), Image.BILINEAR)
+            out = im if out is None else Image.alpha_composite(out, im)
+        img = out.convert("RGB")
         if self.fx.get("rain"):
             img = self.rain(img, t)
         if self.fx.get("redpulse"):
-            a = 0.12 + 0.12 * (0.5 + 0.5 * math.sin(t * 5))
+            a = 0.10 + 0.10 * (0.5 + 0.5 * math.sin(t * 5))
             img = Image.blend(img, Image.new("RGB", img.size, (170, 20, 30)), a)
         if self.fx.get("flash") and t < 0.25:
             img = Image.blend(img, Image.new("RGB", img.size, (255, 255, 255)), (1 - t / 0.25) * 0.85)
-        return img
+        return self.finish(img, t)
+
+    def finish(self, img, t):
+        """Bloom on bright areas plus moving film grain."""
+        small = img.resize((W // 2, PANEL_H // 2), Image.BILINEAR)
+        bright = small.point(lambda v: max(0, v - 165) * 2).filter(ImageFilter.GaussianBlur(14))
+        arr = np.asarray(img).astype(np.float32)
+        b = np.asarray(bright.resize((W, PANEL_H), Image.BILINEAR)).astype(np.float32)
+        arr = 255 - (255 - arr) * (255 - b * 0.55) / 255
+        arr += grain_frames()[int(t * 24) % 6]
+        return Image.fromarray(arr.clip(0, 255).astype(np.uint8))
 
     def rain(self, img, t):
         d = ImageDraw.Draw(img, "RGBA")
@@ -266,7 +347,19 @@ def draw_choice(img, choice, t, say_times):
 
 def build(script, base):
     v = script["voice"]
-    say = lambda text: tts.synth(text, v["backend"], v["voice"], v.get("speed", 1.0))
+    styles = script.get("voice_styles", {})
+
+    def say(text):
+        """A sentence may start with [style], e.g. [whisper]. Styles map to other voices."""
+        style = None
+        if text.startswith("["):
+            style, text = text[1:].split("]", 1)
+            text = text.strip()
+        vv = dict(v, **styles.get(style, {})) if style else v
+        return tts.synth(text, vv["backend"], vv["voice"], vv.get("speed", 1.0))
+
+    def clean(text):
+        return text.split("]", 1)[1].strip() if text.startswith("[") else text
     names = [s["svg"] for s in script["scenes"]]
     pngs = render_scenes(script["module"], sorted(set(names)), os.path.join(base, "..", "out", "scenes", script["id"]))
     hud = script["hud"]
@@ -274,6 +367,7 @@ def build(script, base):
     t = 0.0
     all_words = []
     layers = []
+    curve, hits = [], []
     for sc in script["scenes"]:
         # one TTS call per sentence, with a short dramatic pause in between
         lead = sc.get("lead", 0.12 if layers else 0.0)
@@ -283,7 +377,7 @@ def build(script, base):
         for sent in split_sentences(sc["text"]):
             audio = say(sent)
             d = len(audio) / SR
-            all_words += [(w, at + s, at + e) for w, s, e in tts.word_times(sent, d)]
+            all_words += [(w, at + s, at + e) for w, s, e in tts.word_times(clean(sent), d)]
             tl.add_audio(at, audio)
             at += d + gap
         dur = at - gap - t + tail
@@ -291,6 +385,12 @@ def build(script, base):
             tl.add_sfx(t + at, name, sc.get("sfx_gain", 1.0))
         layer = SceneLayer(pngs[sc["svg"]], sc.get("motion", "zoom_in"), dur, sc.get("fx", {}))
         layers.append((t, dur, layer, sc.get("clock", ""), sc.get("choice")))
+        curve.append((t + 0.01, sc.get("music", 0.4)))
+        curve.append((t + dur - 0.01, sc.get("music_end", sc.get("music", 0.4))))
+        if sc.get("hit"):
+            hits.append(t + sc.get("hit_at", 0.0))
+        if sc.get("ambience") == "rain":
+            tl.add_audio(t, sfxlib.rain_amb(dur), 0.8, "sfx")
         t += dur
     # end card with the question
     ch = script["choice"]
@@ -304,7 +404,7 @@ def build(script, base):
     q_end = q_start + dq
     all_words += [(w, q_start + s, q_start + e) for w, s, e in qwords]
     tl.add_audio(q_start, q)
-    tl.add_sfx(t, "sting", 0.8)
+    tl.add_sfx(t, "sting", 0.5)
     outro = script.get("outro_say")
     end = q_end + 0.4
     if outro:
@@ -317,7 +417,12 @@ def build(script, base):
     last = script["scenes"][-1]
     end_layer = SceneLayer(pngs[ch.get("svg", last["svg"])], "still", end - t, {})
     layers.append((t, end - t, end_layer, ch.get("clock", last.get("clock", "")), ("CHOICE", t)))
-    tl.add_audio(0, sfxlib.drone(end), script.get("drone_gain", 1.0))
+    curve.append((t + 0.01, 0.5))
+    curve.append((end, 0.45))
+    hits.append(t)
+    from . import music
+    tl.add_audio(0, music.score(end, curve, hits), script.get("music_gain", 0.55), "music")
+    tl.add_audio(0, sfxlib.drone(end), script.get("drone_gain", 0.6), "music")
     chunks = caption_chunks(all_words)
     choice_times = (q_start, mid, q_end)
 
