@@ -1,0 +1,62 @@
+{
+  "template": "wyr",
+  "lang": "de",
+  "voice": {
+    "backend": "piper",
+    "voice": "de-thorsten-low",
+    "speed": 1.08
+  },
+  "hook": {
+    "a": "Sechs Entscheidungen.",
+    "b": "Die letzte ist unmöglich.",
+    "ea": "🤔",
+    "eb": "💀"
+  },
+  "hook_badge": "?",
+  "rounds": [
+    {
+      "a": "für immer zehn Minuten zu spät kommen",
+      "b": "für immer zwanzig Minuten zu früh kommen",
+      "ea": "⏰",
+      "eb": "🕰️"
+    },
+    {
+      "a": "jede Lüge sofort erkennen",
+      "b": "selbst nie wieder lügen können",
+      "ea": "🕵️",
+      "eb": "🤐"
+    },
+    {
+      "a": "eine Million Euro sofort",
+      "b": "fünftausend Euro jeden Monat für immer",
+      "ea": "💰",
+      "eb": "💶"
+    },
+    {
+      "a": "deine Eltern lesen alle deine Chats",
+      "b": "deine Freunde sehen deinen Suchverlauf",
+      "ea": "👨‍👩‍👦",
+      "eb": "🔍"
+    },
+    {
+      "a": "nie wieder dein Handy benutzen",
+      "b": "nie wieder Freunde treffen",
+      "ea": "📱",
+      "eb": "🫂"
+    },
+    {
+      "a": "nie wieder Musik hören",
+      "b": "nie wieder Videos schauen",
+      "ea": "🎧",
+      "eb": "🎬"
+    }
+  ],
+  "outro": {
+    "a": "Schreib deine Kombi in die Kommentare",
+    "say_a": "Schreib deine Kombi in die Kommentare.",
+    "b": "z.B. ROT BLAU BLAU ROT ROT BLAU",
+    "say_b": "Zum Beispiel: Rot, Blau, Blau, Rot, Rot, Blau.",
+    "badge": "?",
+    "ea": "💬"
+  }
+}

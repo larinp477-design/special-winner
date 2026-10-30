@@ -1,0 +1,43 @@
+{
+  "template": "story",
+  "lang": "de",
+  "voice": {"backend": "piper", "voice": "de-thorsten-low", "speed": 1.05},
+  "character": {
+    "name": "Jonas",
+    "sheet_prompt": "Character sheet, stylized 3D animated movie style (Pixar-like), 17-year-old German boy named Jonas, messy dark blond hair, green hoodie with a small torn left sleeve, grey backpack with a yellow keychain, white sneakers, determined but slightly nervous expression. Front view, side view, back view, three facial expressions (scared, determined, grinning). Plain light grey background, no text.",
+    "sheet": "images/jonas_sheet.png"
+  },
+  "style": "stylized 3D animated movie still, Pixar-like, cinematic lighting, vertical 9:16 composition, subject in the upper two thirds, no text, no watermark",
+  "scenes": [
+    {
+      "image": "images/e01_s1.png",
+      "prompt": "Jonas wakes up in his small bedroom at dawn, phone in hand showing no signal, red emergency light flickering through the window, suburban German town outside",
+      "text": "Tag eins der Zombie-Apokalypse. Jonas wacht in Waltrop auf. Kein Netz. Kein Strom.",
+      "title": "TAG 1",
+      "motion": "zoom_in",
+      "sfx": [["boom", 0.05]]
+    },
+    {
+      "image": "images/e01_s2.png",
+      "prompt": "Jonas peeking through the curtains, on the empty street below three zombies shamble past a parked bicycle and a bakery, morning fog",
+      "text": "Draußen auf der Straße bewegt sich etwas. Langsam. Und es sind viele.",
+      "motion": "pan_left"
+    },
+    {
+      "image": "images/e01_s3.png",
+      "prompt": "Close-up of Jonas holding his breath, backpack on his shoulder, wide scared eyes, door behind him, dramatic rim light",
+      "text": "Er hat einen Rucksack, ein halb volles Handy und genau eine Chance.",
+      "motion": "shake"
+    },
+    {
+      "image": "images/e01_s4.png",
+      "prompt": "Over-the-shoulder shot of Jonas at the front door of a German row house, three paths visible: a supermarket sign down the street, the basement stairs, and a ladder to the roof",
+      "text": "Ihr entscheidet, was er macht. Die meisten Kommentare gewinnen.",
+      "motion": "zoom_out",
+      "choice": ["Zum Supermarkt rennen", "Im Keller verstecken", "Aufs Dach klettern"],
+      "countdown": 3
+    }
+  ],
+  "caption": "Tag 1. Jonas braucht euch. A, B oder C? Die Mehrheit entscheidet Teil 2. KI-generiert.",
+  "hashtags": ["#zombieapokalypse", "#duentscheidest", "#waswärewenn", "#ki"]
+}

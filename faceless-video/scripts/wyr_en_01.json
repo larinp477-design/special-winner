@@ -1,0 +1,62 @@
+{
+  "template": "wyr",
+  "lang": "en",
+  "voice": {
+    "backend": "kokoro",
+    "voice": "am_michael",
+    "speed": 1.05
+  },
+  "hook": {
+    "a": "Six choices.",
+    "b": "The last one is impossible.",
+    "ea": "🤔",
+    "eb": "💀"
+  },
+  "hook_badge": "?",
+  "rounds": [
+    {
+      "a": "always be ten minutes late",
+      "b": "always be twenty minutes early",
+      "ea": "⏰",
+      "eb": "🕰️"
+    },
+    {
+      "a": "hear every lie people tell you",
+      "b": "never be able to lie again",
+      "ea": "🕵️",
+      "eb": "🤐"
+    },
+    {
+      "a": "get one million dollars today",
+      "b": "get five thousand dollars every month forever",
+      "ea": "💰",
+      "eb": "📅"
+    },
+    {
+      "a": "your parents read all your texts",
+      "b": "your friends see your search history",
+      "ea": "👨‍👩‍👦",
+      "eb": "🔍"
+    },
+    {
+      "a": "never use your phone again",
+      "b": "never see your friends again",
+      "ea": "📱",
+      "eb": "🫂"
+    },
+    {
+      "a": "never listen to music again",
+      "b": "never watch videos again",
+      "ea": "🎧",
+      "eb": "🎬"
+    }
+  ],
+  "outro": {
+    "a": "Comment your combo below",
+    "say_a": "Comment your combo below.",
+    "b": "e.g. RED BLUE BLUE RED RED BLUE",
+    "say_b": "For example: red, blue, blue, red, red, blue.",
+    "badge": "?",
+    "ea": "💬"
+  }
+}
