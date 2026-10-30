@@ -1,0 +1,200 @@
+{
+  "id": "zombie_e01",
+  "template": "episode",
+  "module": "episodes.zombie_e01",
+  "voice": {
+    "backend": "piper",
+    "voice": "de-thorsten-low",
+    "speed": 0.95
+  },
+  "hud": {
+    "left": "UHR · WALTROP",
+    "right_top": "AUSGANGSSPERRE",
+    "right_mid": "TAG 1",
+    "alarm": "ALARM"
+  },
+  "scenes": [
+    {
+      "svg": "bedroom",
+      "clock": "06:12",
+      "motion": "zoom_in",
+      "text": "Sechs Uhr zwölf. Dein Wecker hat nicht geklingelt. Kein Strom. Kein Netz. Draußen ist es viel zu still für einen Montag.",
+      "sfx": [
+        [
+          "boom",
+          0.0
+        ]
+      ]
+    },
+    {
+      "svg": "phone",
+      "clock": "06:13",
+      "motion": "push",
+      "fx": {
+        "redpulse": true
+      },
+      "text": "Auf deinem Handy kommt nur noch eine einzige Nachricht durch. Notfallwarnung. Bleiben Sie in Ihren Häusern. Öffnen Sie niemandem die Tür. Niemandem.",
+      "sfx": [
+        [
+          "alarm",
+          0.1
+        ]
+      ]
+    },
+    {
+      "svg": "window",
+      "clock": "06:15",
+      "motion": "zoom_in",
+      "text": "Du gehst zum Fenster. Mitten auf der Straße steht Herr Krüger von nebenan. Im Bademantel. Barfuß. Er bewegt sich nicht."
+    },
+    {
+      "svg": "krueger",
+      "clock": "06:15",
+      "motion": "push",
+      "fx": {
+        "redpulse": true,
+        "shake_at": [
+          0.2
+        ]
+      },
+      "text": "Dann dreht er langsam den Kopf. Seine Augen sind milchig weiß. Und er schaut genau zu dir.",
+      "sfx": [
+        [
+          "sting",
+          0.15
+        ],
+        [
+          "heartbeat",
+          2.2
+        ],
+        [
+          "heartbeat",
+          3.2
+        ]
+      ]
+    },
+    {
+      "svg": "door",
+      "clock": "06:21",
+      "motion": "zoom_in",
+      "fx": {
+        "shake_at": [
+          0.15,
+          0.57,
+          0.99
+        ]
+      },
+      "lead": 1.4,
+      "text": "Es klopft. Dreimal. An deiner Wohnungstür.",
+      "sfx": [
+        [
+          "knock",
+          0.15
+        ]
+      ]
+    },
+    {
+      "svg": "du_door",
+      "clock": "06:21",
+      "motion": "zoom_in",
+      "text": "Du hältst die Luft an. Schleichst zur Tür. Und schaust durch den Spion.",
+      "sfx": [
+        [
+          "heartbeat",
+          0.3
+        ],
+        [
+          "heartbeat",
+          1.3
+        ]
+      ]
+    },
+    {
+      "svg": "peephole",
+      "clock": "06:22",
+      "motion": "push",
+      "fx": {
+        "flash": true
+      },
+      "text": "Davor steht Mia aus deiner Klasse. Ihr Arm blutet. Bitte, lass mich rein! Die sind direkt hinter mir!",
+      "sfx": [
+        [
+          "sting",
+          0.0
+        ]
+      ]
+    },
+    {
+      "svg": "stairs",
+      "clock": "06:22",
+      "motion": "push",
+      "fx": {
+        "shake": true
+      },
+      "text": "Unten im Treppenhaus hörst du Schritte. Schlurfend. Langsam. Und es werden immer mehr.",
+      "sfx": [
+        [
+          "boom",
+          0.1
+        ]
+      ]
+    },
+    {
+      "svg": "banging",
+      "clock": "06:23",
+      "motion": "push",
+      "fx": {
+        "redpulse": true,
+        "shake_at": [
+          0.1,
+          0.5,
+          0.9,
+          1.3
+        ]
+      },
+      "text": "Mia hämmert gegen die Tür. Du hast vielleicht noch zehn Sekunden.",
+      "sfx": [
+        [
+          "knock",
+          0.1
+        ],
+        [
+          "knock",
+          0.6
+        ]
+      ]
+    }
+  ],
+  "choice": {
+    "svg": "banging",
+    "clock": "06:23",
+    "heading": "WAS MACHST DU?",
+    "say": "Was machst du? Lässt du Mia rein, oder bleibt die Tür zu?",
+    "split_word": 7,
+    "options": [
+      {
+        "title": "Tür auf",
+        "sub": "Mia reinlassen",
+        "color": "blue",
+        "icon": "🚪"
+      },
+      {
+        "title": "Tür zu",
+        "sub": "Sie könnte infiziert sein",
+        "color": "red",
+        "icon": "🔒"
+      }
+    ],
+    "cta": "SCHREIB 1 ODER 2"
+  },
+  "outro_say": "Die Mehrheit entscheidet Teil zwei.",
+  "min_duration": 61.5,
+  "caption": "Tag 1 in Waltrop. Mia steht vor deiner Tür. 1 oder 2? Die Mehrheit entscheidet Teil 2.",
+  "hashtags": [
+    "#zombieapokalypse",
+    "#duentscheidest",
+    "#waltrop",
+    "#ruhrpott"
+  ],
+  "gap": 0.32
+}

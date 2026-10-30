@@ -162,7 +162,7 @@ def write_video(tl, out_path, preview_dir=None):
     proc = subprocess.Popen(
         ["ffmpeg", "-y", "-v", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}",
          "-r", str(FPS), "-i", "-", "-i", wav, "-c:v", "libx264", "-preset", "medium", "-crf", "18",
-         "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-af", "loudnorm=I=-14:TP=-1.5",
+         "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-af", "loudnorm=I=-13:TP=-1.0",
          "-movflags", "+faststart", "-shortest", out_path], stdin=subprocess.PIPE)
     if preview_dir:
         os.makedirs(preview_dir, exist_ok=True)
