@@ -277,7 +277,8 @@ def _grad(gid, col, k_lit=1.12, k_dark=0.78, facing=1):
 
 def person3(x, yf, h=600, facing=1, skin="light", hair="#5a3a22", style="short", shirt="#3f7a4f", pants="#2e3550",
             shoes="#1d1d24", clothes="hoodie", mood="neutral", arms="down", legs="stand", zombie=False, blood=False,
-            eyes_closed=False, glasses=False, look=0.0, rim="#ffffff", rim_op=0.0, iris="#3a2a22", extra="", **_):
+            eyes_closed=False, glasses=False, look=0.0, rim="#ffffff", rim_op=0.0, iris="#3a2a22", tired=False,
+            headband=None, extra="", **_):
     """Standing figure, about 6.3 heads tall, in 3/4 view (facing=1 right, -1 left, 0 front)."""
     uid = next(_uid)
     u = h / 100
@@ -447,6 +448,9 @@ def person3(x, yf, h=600, facing=1, skin="light", hair="#5a3a22", style="short",
             hd.append(I.circle(ex + (fs * 0.35 + look) * u + 0.3 * u, ey - 0.35 * u, 0.22 * u, "#ffffff"))
             hd.append(I.path(f"M{_c(ex - erx * k - 0.2 * u)},{_c(ey - 0.3 * u)} Q{_c(ex)},{_c(ey - ery - 0.4 * u)} {_c(ex + erx * k + 0.2 * u)},{_c(ey - 0.3 * u)}",
                              "none", 1, f'stroke="#2a1a18" stroke-width="{_c(0.42 * u)}" stroke-linecap="round"'))
+        if tired and not zombie:
+            hd.append(I.path(f"M{_c(ex - erx * k)},{_c(ey + ery + 0.2 * u)} Q{_c(ex)},{_c(ey + ery + 1.3 * u)} {_c(ex + erx * k)},{_c(ey + ery + 0.2 * u)}",
+                             "none", 0.55, f'stroke="{I.shade(sk, 0.62)}" stroke-width="{_c(0.5 * u)}" stroke-linecap="round"'))
         bcol = I.shade(hair, 0.7) if style != "bald" else "#8a8070"
         by = ey - ery - 1.1 * u
         tilt_in = {"scared": -0.7, "shock": -0.9, "sad": -0.6, "angry": 0.8}.get(mood, 0)
@@ -480,6 +484,8 @@ def person3(x, yf, h=600, facing=1, skin="light", hair="#5a3a22", style="short",
     if mood == "crying" and not eyes_closed:
         for (ex, k) in eyes:
             hd.append(I.line(ex, ey + ery, ex - 0.2 * u, ey + ery + 4.5 * u, "#8fd0ff", 0.45 * u, 0.8))
+    if headband:
+        hd.append(I.rect(hx - rx - 0.4 * u, hy - 5.2 * u, 2 * rx + 0.8 * u, 1.6 * u, headband, rx=0.6 * u))
     tilt = f'transform="rotate({8 * fs} {_c(hx)} {_c(hy + 8 * u)})"' if zombie else ""
     o.append(f"<g {tilt}>{''.join(hd)}</g>")
     return f"<g {extra}>{''.join(o)}</g>"

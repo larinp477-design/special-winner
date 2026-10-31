@@ -85,6 +85,7 @@ def render_scenes(module, names, out_dir):
 
 
 GRAIN = None
+BG_TINT = [58, 12, 22]  # red like the reference; a script can set "bg_tint"
 
 
 def grain_frames():
@@ -129,7 +130,7 @@ class SceneLayer:
         r = np.sqrt(((xx - W / 2) / (W * 0.62)) ** 2 + ((yy - H * 0.42) / (H * 0.55)) ** 2)
         k = np.clip((r - 0.35) / 0.75, 0, 1)[..., None]
         arr = np.asarray(bg).astype(np.float32)
-        tint = np.array([58, 12, 22], np.float32)
+        tint = np.array(BG_TINT, np.float32)
         arr = arr * (1 - k * 0.75) + tint * k * 0.75 * 0.6
         self.bg = Image.fromarray(arr.clip(0, 255).astype(np.uint8))
         # feather mask for the panel edges
@@ -304,8 +305,10 @@ def draw_choice(img, choice, t, say_times):
     d = ImageDraw.Draw(img, "RGBA")
     k = min(1, t / 0.3)
     d.rectangle((0, PANEL_Y, W, PANEL_Y + PANEL_H), fill=(10, 10, 16, int(135 * k)))
-    fh = font(80, 900)
     head = choice.get("heading", "WAS MACHST DU?")
+    fh = font(80, 900)
+    while d.textlength(head, font=fh) > 900 and fh.size > 40:
+        fh = font(fh.size - 4, 900)
     hw = d.textlength(head, font=fh)
     a = int(255 * min(1, t / 0.25))
     d.text(((W - hw) / 2, 470), head, font=fh, fill=(255, 255, 255, a), stroke_width=3, stroke_fill=(10, 10, 16, a))
@@ -348,6 +351,8 @@ def draw_choice(img, choice, t, say_times):
 
 
 def build(script, base):
+    global BG_TINT
+    BG_TINT = script.get("bg_tint", [58, 12, 22])
     v = script["voice"]
     styles = script.get("voice_styles", {})
 
@@ -358,7 +363,11 @@ def build(script, base):
             style, text = text[1:].split("]", 1)
             text = text.strip()
         vv = dict(v, **styles.get(style, {})) if style else v
-        return tts.synth(text, vv["backend"], vv["voice"], vv.get("speed", 1.0))
+        audio = tts.synth(text, vv["backend"], vv["voice"], vv.get("speed", 1.0))
+        if vv.get("pitch"):
+            from .render import ffmpeg_filter
+            audio = ffmpeg_filter(audio, f"rubberband=pitch={vv['pitch']}")
+        return audio
 
     def clean(text):
         return text.split("]", 1)[1].strip() if text.startswith("[") else text
@@ -423,7 +432,7 @@ def build(script, base):
     curve.append((end, 0.45))
     hits.append(t)
     from . import music
-    tl.add_audio(0, music.score(end, curve, hits), script.get("music_gain", 0.55), "music")
+    tl.add_audio(0, music.score(end, curve, hits, mood=script.get("music_mood", "dark")), script.get("music_gain", 0.55), "music")
     tl.add_audio(0, sfxlib.drone(end), script.get("drone_gain", 0.6), "music")
     chunks = caption_chunks(all_words)
     choice_times = (q_start, mid, q_end)

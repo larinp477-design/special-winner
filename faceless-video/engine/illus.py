@@ -605,3 +605,131 @@ def hedge(x, yb, w, h=90, col="#1f3328"):
 def layer_svg(body, defs=""):
     """Transparent layer (no background) for parallax compositing."""
     return svg(body, defs)
+
+
+# ---------------------------------------------------------------- props for everyday scenes (Cope to Chad)
+
+def fridge(x, yb, w=360, h=760, open_=True, contents=""):
+    """Fridge; open shows a lit interior with shelves and the given contents drawn on top."""
+    s = [rect(x + 8, yb - h + 8, w, h, "#000000", op=0.3), rect(x, yb - h, w, h, "#d9dde3", rx=18)]
+    if open_:
+        s += [rect(x + 22, yb - h + 22, w - 44, h - 120, "#f4f1e6", rx=8), glow(x + w / 2, yb - h * 0.6, w * 0.9, "Warm", 0.35)]
+        for k in range(1, 4):
+            y = yb - h + 22 + (h - 120) * k / 4
+            s.append(rect(x + 22, y, w - 44, 8, "#c9ccd2"))
+        s.append(rect(x + 22, yb - 98, w - 44, 70, "#c9ccd2", rx=6))
+        s.append(path(f"M{x + w},{yb - h + 10} L{x + w + 150},{yb - h + 60} L{x + w + 150},{yb - 40} L{x + w},{yb - 10} Z", "#c4c8cf"))
+        s.append(rect(x + w + 30, yb - h + 140, 100, 10, "#aeb2b9"))
+        s.append(rect(x + w + 30, yb - h * 0.45, 100, 10, "#aeb2b9"))
+    else:
+        s += [rect(x + w - 40, yb - h * 0.7, 12, 160, "#9aa0a8", rx=6), line(x + 10, yb - h * 0.62, x + w - 10, yb - h * 0.62, "#b9bec6", 4)]
+    s.append(contents)
+    return "".join(s)
+
+
+def egg_carton(x, y, n=3, slots=6):
+    s = [rect(x, y, 34 * slots + 16, 46, "#c9b48a", rx=8)]
+    for i in range(slots):
+        if i < n:
+            s.append(ellipse(x + 25 + i * 34, y + 2, 15, 20, "#f3e6d0"))
+            s.append(ellipse(x + 21 + i * 34, y - 6, 4, 6, "#ffffff", 0.6))
+        else:
+            s.append(ellipse(x + 25 + i * 34, y + 12, 13, 8, "#a8946c"))
+    return "".join(s)
+
+
+def kiwi(x, y, r=34, half=True):
+    s = [circle(x, y, r, "#7a5a32")]
+    if half:
+        s += [circle(x + r * 1.9, y + 4, r * 0.95, "#7a5a32"), circle(x + r * 1.9, y + 4, r * 0.82, "#8dc63f"),
+              circle(x + r * 1.9, y + 4, r * 0.32, "#f2f0c8")]
+        for k in range(10):
+            a = k * math.pi / 5
+            s.append(circle(x + r * 1.9 + math.cos(a) * r * 0.45, y + 4 + math.sin(a) * r * 0.45, 2.6, "#2a2a1a"))
+    return "".join(s)
+
+
+def energy_can(x, yb, h=150, label="VOLT", glow_=True):
+    w = h * 0.45
+    s = [ellipse(x, yb, w * 0.6, 10, "#000000", 0.3), rect(x - w / 2, yb - h, w, h, "#1d2a22", rx=10),
+         rect(x - w / 2, yb - h * 0.72, w, h * 0.42, "#39ff8a", op=0.9), rect(x - w / 2 + 6, yb - h + 10, 8, h - 20, "#ffffff", op=0.18),
+         ellipse(x, yb - h, w / 2, 8, "#b9c2bd"), text(x, yb - h * 0.45, label, int(h * 0.16), "#0b120e", 900)]
+    if glow_:
+        s.insert(0, glow(x, yb - h / 2, h * 1.2, "Cold", 0.25))
+    return "".join(s)
+
+
+def kitchen(seed=21, morning=True):
+    wall = "#c9c2b2" if morning else "#4a4f63"
+    s = [room2(wall, "#6a5546", floor_y=930, stripes=False, seed=seed)]
+    s.append(window(980, 170, 420, 330, sky(*(("#9cc4e8", "#f3c79a") if morning else ("#141a2b", "#2a3350")), stars=0, seed=seed)
+                    + house2(-40, 360, 260, 200, "#8a7f74", "#5a4f48", seed=1) + house2(230, 360, 260, 220, "#7f766f", "#4f4844", seed=2),
+                    frame="#efece6"))
+    s.append(rect(0, 640, W, 26, "#8a7a68"))
+    s.append(rect(0, 666, W, 264, "#5d6b78"))
+    for i in range(6):
+        s.append(rect(30 + i * 265, 690, 240, 220, "#6a7987", rx=6))
+        s.append(rect(130 + i * 265, 760, 40, 8, "#c9ccd2", rx=4))
+    s.append(rect(0, 60, 900, 220, "#6a7987"))
+    for i in range(4):
+        s.append(rect(20 + i * 220, 80, 200, 180, "#76858f", rx=6))
+    s.append(light_shaft([(980, 500), (1400, 500), (1300, 930), (700, 930)], "#fff1c8", 0.18))
+    return "".join(s)
+
+
+def bathroom(seed=31):
+    s = [rect(0, 0, W, H, "#7f97a3")]
+    for i in range(0, W, 80):
+        s.append(line(i, 0, i, 900, "#6d8591", 3))
+    for j in range(0, 900, 80):
+        s.append(line(0, j, W, j, "#6d8591", 3))
+    s.append(rect(0, 900, W, 300, "#3f4a54"))
+    for i in range(0, W, 120):
+        for j in range(900, 1200, 120):
+            if (i // 120 + j // 120) % 2:
+                s.append(rect(i, j, 120, 120, "#36414a"))
+    s.append(rect(1020, 720, 420, 60, "#e8ecef", rx=20) + rect(1040, 780, 380, 120, "#d2d8dc", rx=12)
+             + rect(1205, 690, 14, 40, "#aab3b9") + rect(1190, 680, 60, 14, "#aab3b9", rx=6))
+    s.append(rect(1080, 640, 50, 80, "#9ad0e8", rx=8, op=0.8) + line(1095, 610, 1100, 660, "#e85a5a", 6))
+    return "".join(s)
+
+
+def mirror(x, y, w, h, reflection=""):
+    cid = f"mir{x}{y}"
+    return (rect(x - 16, y - 16, w + 32, h + 32, "#c9ccd2", rx=10)
+            + f'<clipPath id="{cid}"><rect x="{x}" y="{y}" width="{w}" height="{h}"/></clipPath>'
+            + f'<g clip-path="url(#{cid})">' + rect(x, y, w, h, "#9fb6c2") + reflection
+            + rect(x, y, w, h, "#bfe3ff", op=0.18) + path(f"M{x + w * 0.1},{y} L{x + w * 0.35},{y} L{x},{y + h * 0.4} L{x},{y + h * 0.15} Z", "#ffffff", 0.18)
+            + "</g>")
+
+
+def messy_bedroom(seed=41):
+    s = [room2("#2b3146", "#2e2626", floor_y=900, seed=seed)]
+    s.append(window(1080, 160, 380, 340, sky("#0b0f1c", "#1a2236", stars=40, seed=seed) + skyline(340, "#0f1322", seed), frame="#5a6274",
+                    curtains="#2a2a3a"))
+    s.append(poster(140, 220, 200, 270, "#3a2a4a", "GRIND", "#c9a24a"))
+    s.append(desk(420, 900, 480, lamp_on=False, monitor=True))
+    for i, (cx, cy) in enumerate([(520, 690), (575, 694), (860, 688)]):
+        s.append(energy_can(cx, cy, 70, "VOLT", glow_=False))
+    s.append(rect(1060, 760, 460, 150, "#3a3f52", rx=12) + rect(1080, 720, 420, 70, "#4a5a7a", rx=20) + rect(1090, 700, 130, 50, "#d9d6e0", rx=18))
+    s += [path("M200,1000 Q260,960 330,990 Q380,1010 340,1040 L190,1045 Z", "#4a4f63"),
+          path("M980,1050 Q1040,1010 1110,1040 L1100,1080 L970,1080 Z", "#6a3a3a")]
+    s.append(rect(160, 1110, 90, 28, "#e9e6dc", rx=6) + rect(1300, 1000, 90, 20, "#d0d0d8", rx=6))
+    return "".join(s)
+
+
+def app_card(cx, cy, title, rows, rank="COPE", accent="#f2c14e"):
+    """Habit-tracker style status card. rows: [(label, value_text, fraction 0..1, color)]"""
+    w, h = 900, 150 + 120 * len(rows)
+    x, y = cx - w / 2, cy - h / 2
+    s = [rect(x + 12, y + 16, w, h, "#000000", op=0.35, extra='filter="url(#blur20)"'),
+         rect(x, y, w, h, "#11151d", rx=34, op=0.96), rect(x, y, w, h, "none", rx=34, extra=f'stroke="{accent}" stroke-width="4" stroke-opacity=".7"'),
+         text(x + 50, y + 82, title, 46, "#ffffff", 900, anchor="start"),
+         rect(x + w - 250, y + 40, 200, 58, accent, rx=29), text(x + w - 150, y + 80, rank, 32, "#11151d", 900)]
+    for i, (label, val, frac, col) in enumerate(rows):
+        yy = y + 150 + i * 120
+        s.append(text(x + 50, yy + 34, label, 30, "#9aa3b2", 800, anchor="start"))
+        s.append(text(x + w - 50, yy + 34, val, 34, "#ffffff", 900, anchor="end"))
+        s.append(rect(x + 50, yy + 56, w - 100, 22, "#252b37", rx=11))
+        s.append(rect(x + 50, yy + 56, max(22, (w - 100) * frac), 22, col, rx=11))
+    return "".join(s)

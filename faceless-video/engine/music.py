@@ -15,6 +15,9 @@ BEAT = 60 / BPM
 CHORDS = [  # D minor: Dm, Bb, Gm, A (midi notes)
     [50, 53, 57, 62], [46, 50, 53, 58], [43, 50, 55, 58], [45, 49, 52, 57],
 ]
+LIGHT = [  # C major, hopeful: C, G, Am, F
+    [48, 52, 55, 60], [43, 50, 55, 59], [45, 52, 57, 60], [41, 48, 53, 57],
+]
 
 
 def hz(m):
@@ -77,7 +80,11 @@ def interp_curve(curve, n):
     return np.interp(t, xs, ys).astype(np.float32)
 
 
-def score(dur, curve=((0, 0.4),), hits=(), seed=1):
+def score(dur, curve=((0, 0.4),), hits=(), seed=1, mood="dark"):
+    global CHORDS
+    saved = CHORDS
+    if mood == "light":
+        CHORDS = LIGHT
     n = int(dur * SR)
     inten = interp_curve(list(curve), n)
     out = np.zeros(n, np.float32)
@@ -144,4 +151,5 @@ def score(dur, curve=((0, 0.4),), hits=(), seed=1):
     out = reverb(out, 3.0, 0.4, seed)
     out = highpass_fft(out, 28)
     peak = np.max(np.abs(out)) or 1
+    CHORDS = saved
     return (out / peak * 0.5).astype(np.float32)

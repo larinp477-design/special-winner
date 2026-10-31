@@ -1,0 +1,136 @@
+{
+  "id": "cope_e01",
+  "template": "episode",
+  "module": "episodes.cope_e01",
+  "voice": {
+    "backend": "kokoro",
+    "voice": "am_michael",
+    "speed": 1.0
+  },
+  "voice_styles": {
+    "cope": {
+      "speed": 1.08,
+      "pitch": 1.12
+    }
+  },
+  "gap": 0.28,
+  "bg_tint": [
+    12,
+    22,
+    48
+  ],
+  "music_mood": "light",
+  "music_gain": 0.45,
+  "drone_gain": 0.0,
+  "hud": {
+    "left": "DAY 0 / 100",
+    "right_top": "COPE TO CHAD",
+    "right_mid": "KEVIN · LVL 1",
+    "alarm": "AURA 3"
+  },
+  "scenes": [
+    {
+      "svg": "scroll",
+      "clock": "03:12",
+      "motion": "zoom_in",
+      "music": 0.25,
+      "text": "This is Kevin. He's nineteen. It's three a.m. and he's still scrolling."
+    },
+    {
+      "svg": "stats",
+      "clock": "03:12",
+      "motion": "push",
+      "music": 0.3,
+      "sfx": [
+        [
+          "pop",
+          0.1
+        ],
+        [
+          "pop",
+          1.4
+        ],
+        [
+          "pop",
+          2.6
+        ],
+        [
+          "pop",
+          4.0
+        ]
+      ],
+      "text": "Level one. Aura: three out of a hundred. Sleep: three hours. Gym visits this year: zero."
+    },
+    {
+      "svg": "mirror",
+      "clock": "07:01",
+      "motion": "zoom_in",
+      "music": 0.3,
+      "text": "Every morning he looks in the mirror and says the same thing. [cope] It's genetics, bro."
+    },
+    {
+      "svg": "brad",
+      "clock": "07:02",
+      "motion": "pan_right",
+      "music": 0.4,
+      "text": "Meanwhile, Brad next door is already on his second lap."
+    },
+    {
+      "svg": "notify",
+      "clock": "07:05",
+      "motion": "push",
+      "music": 0.65,
+      "hit": true,
+      "sfx": [
+        [
+          "buzz",
+          0.05
+        ],
+        [
+          "ding",
+          0.6
+        ]
+      ],
+      "text": "But today, that changes. For the next one hundred days, Kevin has a system. And the system is you."
+    },
+    {
+      "svg": "kitchen",
+      "clock": "07:08",
+      "motion": "zoom_in",
+      "music": 0.7,
+      "text": "Day one. First quest: breakfast. In the fridge: three eggs and a kiwi. On the counter: last night's energy drink."
+    }
+  ],
+  "choice": {
+    "svg": "kitchen",
+    "clock": "07:08",
+    "heading": "WHAT DOES KEVIN DO?",
+    "say": "One: eggs and kiwi. Two: the energy drink. Vote in the poll. Whatever wins, Kevin has to do.",
+    "split_word": 4,
+    "options": [
+      {
+        "title": "Eggs + Kiwi",
+        "sub": "real breakfast",
+        "color": "blue",
+        "icon": "🥚"
+      },
+      {
+        "title": "Energy Drink",
+        "sub": "last night's can",
+        "color": "red",
+        "icon": "⚡"
+      }
+    ],
+    "cta": "VOTE IN THE POLL"
+  },
+  "outro_say": "Day two drops tomorrow. Don't let him stay a cope.",
+  "min_duration": 0,
+  "caption": "Day 0. Kevin's life is now in your hands. Eggs or energy drink? Vote in the poll. AI-generated.",
+  "hashtags": [
+    "#glowup",
+    "#looksmaxxing",
+    "#selfimprovement",
+    "#copetochad"
+  ],
+  "pinned_comment": "poll closes in 24h. whatever wins, kevin eats it. comment the excuse he'll use 👇"
+}
