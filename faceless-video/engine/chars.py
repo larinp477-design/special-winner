@@ -5,6 +5,7 @@ Clothes: hoodie, jacket, robe, tshirt, uniform. Moods: neutral, scared, shock, c
 smile, sad, angry. eyes_closed=True draws the blink frame.
 """
 import itertools
+import math
 
 from . import illus as I
 
@@ -334,12 +335,19 @@ def person3(x, yf, h=600, facing=1, skin="light", hair="#5a3a22", style="short",
             jx, jy = shx + abs(ex) * u * sd * 0.6, sh_y + ey * u
             hx2, hy2 = shx + abs(hx_) * u * sd * 0.5, sh_y + hy_ * u
         col = I.shade(sleeve, 0.7) if back else S
-        part = I.poly([(shx, sh_y + 2 * u), (jx, jy), (hx2, hy2)], col, 4.8 * u)
+        part = I.poly([(shx, sh_y + 2 * u), (jx, jy), (hx2, hy2)], col, 4.4 * u)
         if clothes in ("hoodie", "jacket", "uniform", "robe"):
             dx, dy = hx2 - jx, hy2 - jy
             L = max(1e-6, (dx * dx + dy * dy) ** 0.5)
-            part += I.circle(hx2 - dx / L * 2.2 * u, hy2 - dy / L * 2.2 * u, 2.6 * u, I.shade(sleeve, 0.62 if back else 0.8))
-        part += I.ellipse(hx2, hy2, 2.1 * u, 2.4 * u, I.shade(sk, 0.8) if back else sk)
+            part += I.circle(hx2 - dx / L * 1.6 * u, hy2 - dy / L * 1.6 * u, 2.15 * u, I.shade(sleeve, 0.62 if back else 0.8))
+        ang = math.degrees(math.atan2(hy2 - jy, hx2 - jx))
+        mode = "fist" if arms in ("fists", "knock") else "relaxed"
+        part += hand(hx2, hy2, ang, u, sk, mode, back)
+        if arms == "phone" and not back:
+            pcx, pcy = hx2 + fs * 1.2 * u, hy2 - 3.0 * u
+            part += I.rect(pcx - 1.7 * u, pcy - 3.2 * u, 3.4 * u, 6.2 * u, "#121318", rx=0.6 * u)
+            part += I.rect(pcx - 1.4 * u, pcy - 2.9 * u, 2.8 * u, 5.6 * u, "#8fc3ff", rx=0.4 * u, op=0.85)
+            part += I.ellipse(pcx - fs * 1.5 * u, pcy + 0.6 * u, 0.9 * u, 1.5 * u, sk, extra=f'stroke="{I.shade(sk, 0.62)}" stroke-width="{0.12 * u:.1f}"')
         arm_parts.append((back, part, (hx2, hy2)))
     front_pose = arms in ("hold", "phone", "reach", "point", "fists", "knock", "scared")
     o += [p for b, p, _ in arm_parts if b]
@@ -383,8 +391,15 @@ def person3(x, yf, h=600, facing=1, skin="light", hair="#5a3a22", style="short",
     o += [p for b, p, _ in arm_parts if not b]
     if arms == "phone":
         px, py = arm_parts[1][2]
-        o.append(I.rect(px - 1.8 * u + fs * u, py - 5.5 * u, 3.6 * u, 6.5 * u, "#121318", rx=0.6 * u))
-        o.append(I.glow(px + fs * 3 * u, py - 3 * u, 9 * u, "Cold", 0.55))
+        o.append(I.glow(px + fs * 1.2 * u, py - 3 * u, 9 * u, "Cold", 0.5))
+
+    if f:
+        # version 4 head: drawn facing right, mirrored for left, so both sides match
+        hx, hy = x + fs * 1.0 * u, yf - (87.5 if zombie else 89.3) * u
+        head = head34(u * 0.92, sk, hair, style, mood, iris, eyes_closed, tired, zombie, rim, rim_op, headband, glasses)
+        rot = 8 if zombie else 0
+        o.append(f'<g transform="translate({hx:.1f},{hy:.1f}) scale({fs},1) rotate({rot})">{head}</g>')
+        return f"<g {extra}>{''.join(o)}</g>"
 
     # neck and head
     hx, hy = x + fs * (2.0 if zombie else 1.0) * u, yf - (88.5 if zombie else 91) * u
@@ -494,3 +509,156 @@ def person3(x, yf, h=600, facing=1, skin="light", hair="#5a3a22", style="short",
 def zombie3(x, yf, h=600, shirt="#5d6b78", pants="#3a3530", hair="#3b3a33", style="short", **kw):
     kw.setdefault("arms", "reach")
     return person3(x, yf, h, shirt=shirt, pants=pants, hair=hair, style=style, zombie=True, **kw)
+
+
+# ---------------------------------------------------------------- head and hands, version 4
+
+def head34(u, sk, hair, style="short", mood="neutral", iris="#3a2a22", eyes_closed=False, tired=False,
+           zombie=False, rim="#ffffff", rim_op=0.0, headband=None, glasses=False):
+    """3/4 head facing right, drawn around (0, 0) = head center. Mirror with scale(-1, 1) for left.
+    Units: u. Head is about 16u tall. Profile outline carries brow, nose, lips and chin."""
+    uid = next(_uid)
+    k = lambda v: f"{v * u:.1f}"
+    P = lambda pts: " ".join(f"{a} {k(x)},{k(y)}" if a else f"{k(x)},{k(y)}" for a, x, y in pts)
+    sk_d = I.shade(sk, 0.8)
+    face = ("M" + k(-6.4) + "," + k(-1.5) +
+            f" C{k(-6.8)},{k(-8.2)} {k(-1.8)},{k(-9.4)} {k(1.6)},{k(-8.8)}"
+            f" C{k(5.0)},{k(-8.2)} {k(6.6)},{k(-5.4)} {k(6.6)},{k(-2.6)}"
+            f" L{k(6.9)},{k(-1.0)} Q{k(6.4)},{k(0.2)} {k(7.0)},{k(1.4)} L{k(7.9)},{k(2.9)}"
+            f" Q{k(7.9)},{k(3.6)} {k(6.8)},{k(3.7)} Q{k(7.0)},{k(4.5)} {k(6.75)},{k(4.95)}"
+            f" Q{k(7.05)},{k(5.45)} {k(6.6)},{k(5.95)} Q{k(6.5)},{k(7.5)} {k(5.0)},{k(8.1)}"
+            f" Q{k(2.4)},{k(8.7)} {k(-0.2)},{k(7.0)} Q{k(-1.6)},{k(5.8)} {k(-2.6)},{k(3.6)}"
+            f" Q{k(-5.8)},{k(3.0)} {k(-6.4)},{k(-1.5)} Z")
+    gid = f"hg{uid}"
+    o = [f'<linearGradient id="{gid}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="{sk_d}"/>'
+         f'<stop offset=".55" stop-color="{sk}"/><stop offset="1" stop-color="{I.shade(sk, 1.06)}"/></linearGradient>']
+    # neck behind the face
+    o.append(I.path(f"M{k(-2.6)},{k(4)} L{k(2.6)},{k(5.5)} L{k(2.4)},{k(13)} L{k(-2.8)},{k(13)} Z", sk_d))
+    o.append(I.path(face, f"url(#{gid})"))
+    cid = f"hc{uid}"
+    o.append(f'<clipPath id="{cid}"><path d="{face}"/></clipPath>')
+    shade_layer = (I.ellipse(-4.2 * u, 2 * u, 4.5 * u, 7 * u, "#000000", 0.10)
+                   + I.ellipse(1.5 * u, 8.2 * u, 5 * u, 1.6 * u, "#000000", 0.10)
+                   + I.rect(-7 * u, -9 * u, 1.2 * u, 18 * u, rim, op=rim_op))
+    o.append(f'<g clip-path="url(#{cid})">{shade_layer}</g>')
+    # ear
+    o.append(I.ellipse(-2.6 * u, 0.9 * u, 1.35 * u, 2.05 * u, sk_d))
+    o.append(I.path(f"M{k(-2.2)},{k(-0.3)} Q{k(-3.2)},{k(0.8)} {k(-2.3)},{k(2.2)}", "none", 1,
+                    f'stroke="{I.shade(sk, 0.62)}" stroke-width="{k(0.35)}" stroke-linecap="round"'))
+    # eyes: near eye centered, far eye smaller near the nose bridge
+    ey = -0.5
+    big = mood in ("scared", "shock")
+    for ex, sc in ((2.6, 1.0), (5.6, 0.72)):
+        w_, h_ = 1.45 * sc * (1.12 if big else 1), 0.95 * (1.25 if big else 1)
+        almond = (f"M{k(ex - w_)},{k(ey + 0.1)} Q{k(ex - 0.2)},{k(ey - h_ * 1.25)} {k(ex + w_)},{k(ey - 0.1)}"
+                  f" Q{k(ex + 0.1)},{k(ey + h_ * 0.95)} {k(ex - w_)},{k(ey + 0.1)} Z")
+        if zombie:
+            o.append(I.ellipse(ex * u, ey * u, (w_ + 0.6) * u, (h_ + 0.7) * u, I.shade(sk, 0.55), 0.55))
+            o.append(I.path(almond, "#eeeacb"))
+            o.append(I.circle((ex + 0.2) * u, ey * u, 0.3 * u, "#7a1c1c"))
+            continue
+        if eyes_closed:
+            o.append(I.path(f"M{k(ex - w_)},{k(ey + 0.1)} Q{k(ex)},{k(ey + 0.7)} {k(ex + w_)},{k(ey - 0.1)}", "none", 1,
+                            f'stroke="#2a1a18" stroke-width="{k(0.38)}" stroke-linecap="round"'))
+        else:
+            ecid = f"ec{uid}{int(ex * 10)}"
+            o.append(f'<clipPath id="{ecid}"><path d="{almond}"/></clipPath>')
+            o.append(I.path(almond, "#f6f3ee"))
+            ir = 0.78 * (0.9 if big else 1)
+            ix = ex + 0.35 * sc
+            o.append(f'<g clip-path="url(#{ecid})">' + I.circle(ix * u, ey * u, ir * u, iris)
+                     + I.circle(ix * u, ey * u, ir * 0.48 * u, "#121214") + I.circle((ix + 0.25) * u, (ey - 0.3) * u, 0.18 * u, "#ffffff")
+                     + I.rect((ex - 2) * u, (ey - 2) * u, 4 * u, 1.35 * u, "#000000", op=0.12) + "</g>")
+            o.append(I.path(f"M{k(ex - w_ - 0.1)},{k(ey + 0.15)} Q{k(ex - 0.2)},{k(ey - h_ * 1.3)} {k(ex + w_ + 0.15)},{k(ey - 0.15)}",
+                            "none", 1, f'stroke="#2a1a18" stroke-width="{k(0.34)}" stroke-linecap="round"'))
+        if tired and not zombie:
+            o.append(I.path(f"M{k(ex - w_ * 0.8)},{k(ey + 0.85)} Q{k(ex)},{k(ey + 1.5)} {k(ex + w_ * 0.8)},{k(ey + 0.75)}", "none", 0.45,
+                            f'stroke="{I.shade(sk, 0.6)}" stroke-width="{k(0.3)}" stroke-linecap="round"'))
+        # brows: tapered, inner end thicker
+        lift = {"scared": 0.5, "shock": 0.7, "sad": 0.45, "angry": -0.5}.get(mood, 0.0)
+        bx0, bx1 = ex - 1.5 * sc, ex + 1.3 * sc
+        by = ey - 1.75
+        bcol = I.shade(hair, 0.65) if style != "bald" else "#7a7064"
+        inner_y = by - lift * (1 if ex < 4 else 0.6) if mood != "angry" else by + 0.5
+        o.append(I.path(f"M{k(bx0)},{k(by + 0.1)} Q{k((bx0 + bx1) / 2)},{k(by - 0.45)} {k(bx1)},{k(inner_y)}"
+                        f" L{k(bx1)},{k(inner_y + 0.45)} Q{k((bx0 + bx1) / 2)},{k(by + 0.05)} {k(bx0)},{k(by + 0.35)} Z", bcol))
+    if glasses and not zombie:
+        for ex, sc in ((2.6, 1.0), (5.6, 0.72)):
+            o.append(I.rect((ex - 1.9 * sc) * u, (ey - 1.3) * u, 3.8 * sc * u, 2.6 * u, "none", rx=0.6 * u,
+                            extra=f'stroke="#1e1e24" stroke-width="{k(0.32)}"'))
+    # nose: nostril and soft shadow below
+    o.append(I.path(f"M{k(6.2)},{k(3.2)} Q{k(6.8)},{k(3.6)} {k(7.2)},{k(3.3)}", "none", 1,
+                    f'stroke="{I.shade(sk, 0.6)}" stroke-width="{k(0.28)}" stroke-linecap="round"'))
+    o.append(I.ellipse(6.1 * u, 3.9 * u, 0.9 * u, 0.25 * u, "#000000", 0.10))
+    o.append(I.ellipse(4.0 * u, 2.9 * u, 1.3 * u, 0.7 * u, "#ff8a80", 0.18))
+    # mouth on the outline side
+    mx, my = 5.6, 5.4
+    lips = "#a85a54"
+    if zombie:
+        o.append(I.path(f"M{k(mx - 1.6)},{k(my - 0.2)} L{k(mx - 0.8)},{k(my + 0.7)} L{k(mx)},{k(my)} L{k(mx + 0.9)},{k(my + 0.8)} L{k(mx + 1.2)},{k(my - 0.2)}"
+                        f" Q{k(mx)},{k(my + 1.9)} {k(mx - 1.6)},{k(my - 0.2)} Z", "#3b1416"))
+    elif mood in ("scared", "shock", "shout"):
+        o.append(I.ellipse(mx * u, (my + 0.3) * u, 0.85 * u, (1.1 if mood != "shout" else 1.5) * u, "#3b1416"))
+        o.append(I.ellipse(mx * u, (my + 0.95) * u, 0.55 * u, 0.3 * u, "#b85a60"))
+    elif mood in ("sad", "crying"):
+        o.append(I.path(f"M{k(mx - 1.3)},{k(my + 0.5)} Q{k(mx)},{k(my - 0.35)} {k(mx + 1.0)},{k(my + 0.35)}", "none", 1,
+                        f'stroke="{lips}" stroke-width="{k(0.42)}" stroke-linecap="round"'))
+    elif mood == "smile":
+        o.append(I.path(f"M{k(mx - 1.4)},{k(my - 0.1)} Q{k(mx - 0.1)},{k(my + 1.0)} {k(mx + 1.05)},{k(my - 0.3)}", "none", 1,
+                        f'stroke="{lips}" stroke-width="{k(0.42)}" stroke-linecap="round"'))
+    else:
+        o.append(I.path(f"M{k(mx - 1.3)},{k(my + 0.05)} Q{k(mx)},{k(my + 0.3)} {k(mx + 1.05)},{k(my - 0.05)}", "none", 1,
+                        f'stroke="{lips}" stroke-width="{k(0.4)}" stroke-linecap="round"'))
+        o.append(I.path(f"M{k(mx - 0.8)},{k(my + 0.55)} Q{k(mx)},{k(my + 0.85)} {k(mx + 0.7)},{k(my + 0.5)}", "none", 0.35,
+                        f'stroke="{I.shade(sk, 0.7)}" stroke-width="{k(0.3)}" stroke-linecap="round"'))
+    if mood == "crying" and not eyes_closed:
+        o.append(I.line(2.6 * u, 0.4 * u, 2.5 * u, 4.5 * u, "#8fd0ff", 0.35 * u, 0.8))
+    # hair
+    hl = I.shade(hair, 1.3)
+    if style == "short":
+        hp = (f"M{k(-6.9)},{k(1.2)} C{k(-7.6)},{k(-8.6)} {k(-1.0)},{k(-10.6)} {k(3.6)},{k(-9.0)}"
+              f" L{k(4.6)},{k(-9.9)} L{k(5.0)},{k(-8.4)} C{k(6.6)},{k(-7.4)} {k(7.3)},{k(-5.6)} {k(6.9)},{k(-4.0)}"
+              f" L{k(6.1)},{k(-4.4)} L{k(5.9)},{k(-3.3)} L{k(4.9)},{k(-4.4)} L{k(4.2)},{k(-3.4)} L{k(3.4)},{k(-4.6)}"
+              f" Q{k(1.6)},{k(-5.0)} {k(0.4)},{k(-3.6)} L{k(-0.8)},{k(-1.2)} L{k(-1.3)},{k(1.4)}"
+              f" Q{k(-3.4)},{k(1.0)} {k(-4.2)},{k(-1.0)} L{k(-5.3)},{k(1.6)} Z")
+        o.append(I.path(hp, hair))
+        o.append(I.path(f"M{k(-3.6)},{k(-7.2)} Q{k(0.2)},{k(-9.0)} {k(3.6)},{k(-7.6)}", "none", 0.5,
+                        f'stroke="{hl}" stroke-width="{k(0.55)}" stroke-linecap="round"'))
+        o.append(I.path(f"M{k(-5.4)},{k(-3.4)} Q{k(-3.6)},{k(-6.0)} {k(-0.6)},{k(-6.4)}", "none", 0.35,
+                        f'stroke="{hl}" stroke-width="{k(0.4)}" stroke-linecap="round"'))
+    elif style in ("bob", "long"):
+        drop = 9.5 if style == "bob" else 13
+        hp = (f"M{k(-7.2)},{k(drop)} C{k(-8.4)},{k(-9.0)} {k(1.0)},{k(-11.0)} {k(5.4)},{k(-7.8)}"
+              f" C{k(7.4)},{k(-6.2)} {k(7.4)},{k(-4.0)} {k(6.8)},{k(-3.2)} Q{k(4.0)},{k(-5.4)} {k(1.0)},{k(-4.2)}"
+              f" Q{k(-1.0)},{k(-2.4)} {k(-1.6)},{k(1.0)} Q{k(-2.4)},{k(drop - 2)} {k(-1.2)},{k(drop)} Z")
+        o.append(I.path(hp, hair))
+        o.append(I.path(f"M{k(-4.0)},{k(-7.0)} Q{k(0.4)},{k(-9.2)} {k(4.2)},{k(-7.2)}", "none", 0.45,
+                        f'stroke="{hl}" stroke-width="{k(0.55)}" stroke-linecap="round"'))
+    elif style == "bald":
+        o.append(I.path(f"M{k(-6.6)},{k(1.0)} Q{k(-7.0)},{k(-3.0)} {k(-5.4)},{k(-3.8)} L{k(-4.6)},{k(0.6)} Z", hair))
+        o.append(I.ellipse(1.6 * u, -7.4 * u, 2.6 * u, 0.9 * u, "#ffffff", 0.2))
+    elif style == "helmet":
+        o.append(I.path(f"M{k(-7.6)},{k(-1.0)} C{k(-8.0)},{k(-10.6)} {k(6.4)},{k(-11.4)} {k(7.6)},{k(-3.4)} Z", hair))
+        o.append(I.rect(-7.8 * u, -3.0 * u, 15.6 * u, 1.6 * u, I.shade(hair, 0.75), rx=0.6 * u))
+    if headband:
+        o.append(I.path(f"M{k(-6.9)},{k(-4.6)} Q{k(0)},{k(-6.4)} {k(6.8)},{k(-4.2)} L{k(6.9)},{k(-2.9)} Q{k(0)},{k(-5.0)} {k(-6.8)},{k(-3.2)} Z", headband))
+    return "".join(o)
+
+
+def hand(x, y, ang, u, sk, mode="relaxed", back=False):
+    """Hand at the wrist point (x, y), pointing along angle ang (degrees). Mitten palm, finger
+    grooves and a thumb, with a thin darker edge so it reads at small sizes."""
+    col = I.shade(sk, 0.82) if back else sk
+    edge = I.shade(sk, 0.62)
+    k = lambda v: f"{v * u:.1f}"
+    if mode == "fist":
+        palm = f'<rect x="{k(-0.4)}" y="{k(-1.5)}" width="{k(3.0)}" height="{k(3.0)}" rx="{k(1.2)}" fill="{col}" stroke="{edge}" stroke-width="{k(0.15)}"/>'
+        fingers = "".join(f'<line x1="{k(2.0)}" y1="{k(-1.0 + i * 0.75)}" x2="{k(2.6)}" y2="{k(-1.0 + i * 0.75)}" stroke="{edge}" stroke-width="{k(0.12)}"/>' for i in range(4))
+        thumb = f'<ellipse cx="{k(1.0)}" cy="{k(-1.3)}" rx="{k(1.1)}" ry="{k(0.5)}" fill="{col}" stroke="{edge}" stroke-width="{k(0.12)}"/>'
+    else:
+        palm = (f'<path d="M{k(-0.3)},{k(-1.25)} L{k(2.2)},{k(-1.35)} Q{k(3.8)},{k(-1.2)} {k(3.9)},{k(0)} Q{k(3.8)},{k(1.2)} {k(2.2)},{k(1.3)}'
+                f' L{k(-0.3)},{k(1.2)} Z" fill="{col}" stroke="{edge}" stroke-width="{k(0.15)}"/>')
+        fingers = "".join(f'<line x1="{k(2.3)}" y1="{k(-0.75 + i * 0.5)}" x2="{k(3.5)}" y2="{k(-0.75 + i * 0.5)}" stroke="{edge}" stroke-width="{k(0.1)}" opacity=".7"/>' for i in range(4))
+        thumb = (f'<path d="M{k(0.6)},{k(-1.1)} Q{k(1.6)},{k(-2.6)} {k(2.6)},{k(-2.1)} Q{k(2.2)},{k(-1.3)} {k(1.6)},{k(-0.9)} Z"'
+                 f' fill="{col}" stroke="{edge}" stroke-width="{k(0.12)}"/>')
+    return f'<g transform="translate({x:.1f},{y:.1f}) rotate({ang:.1f})">{palm}{fingers}{thumb}</g>'
